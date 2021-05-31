@@ -2,6 +2,7 @@ import numpy as np
 import game.move
 from game.agent.agent import Agent
 from game.agent.random_agent import RandomAgent
+from game.env.advancedshootout_env import get_reward
 
 max_bullets = 20
 def get_num_bullets(s):
@@ -75,13 +76,8 @@ for i in range(iterations):
                 
                 s_next = get_state(num_bullets_next, op_num_bullets_next)
                 
-                if a == game.move.Move.SHOOT and op_a == game.move.Move.RELOAD:
-                    R = 1
-                elif a == game.move.Move.RELOAD and op_a == game.move.Move.SHOOT:
-                    R = -1
-                else:
-                    R = 0
-                    
+                R = get_reward(a, op_a)
+                
                 sum_v = sum_v + prob * (R + discount_factor * np.max(Q_previous[s_next]))
                 
             Q[s, a.value] = sum_v

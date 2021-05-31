@@ -20,6 +20,11 @@ class AdvancedShootoutEnv(gym.Env):
         #get next action before external agent updates itself
         hidden_agent_action = self.hidden_agent.get_next_action(self.external_agent_tracker)
         
+        reward = get_reward(action, hidden_agent_action)
+        if reward != 0:
+            self.done = 1
+        else:
+            self.done = 0
         
         if action == Move.SHOOT and hidden_agent_action == Move.RELOAD:
             self.done = True
@@ -49,4 +54,13 @@ class AdvancedShootoutEnv(gym.Env):
     
     def get_observation(self):
         return copy.deepcopy(self.hidden_agent)
+    
+def get_reward(action_a, action_b):
+        if action_a == Move.SHOOT and action_b == Move.RELOAD:
+            reward = 1
+        elif action_a == Move.RELOAD and action_b == Move.SHOOT:
+            reward = -1
+        else:
+            reward = 0
+        return reward
     

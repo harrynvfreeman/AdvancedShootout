@@ -22,6 +22,9 @@ class Agent:
         return self.is_alive
     
     def make_action(self, action):
+        if self.valid_moves[action.value] == 0:
+            raise Exception(self.name + " made illegal action with " + self.num_bullets + " bullets.")
+        
         if action == game.move.Move.SHIELD:
             pass
         elif action == game.move.Move.RELOAD:
