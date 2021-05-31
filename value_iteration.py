@@ -16,10 +16,20 @@ def get_state(num_bullets, op_num_bullets):
 
 num_states = max_bullets*max_bullets
 Q = np.zeros((num_states, game.move.num_moves))
-#cannot shoot if we have zero bullets
-Q[0:max_bullets, game.move.Move.SHOOT.value] = -np.inf
 #we are not allowing reload if we have max bullets
 Q[(max_bullets-1)*max_bullets:, game.move.Move.RELOAD.value] = -np.inf
+#cannot shoot with 0 bullets
+Q[0:max_bullets, game.move.Move.SHOOT.value] = -np.inf
+#cannot shotgun with less than 2 bullets
+Q[0:2*max_bullets, game.move.Move.SHOTGUN.value] = -np.inf
+#cannot shotgun with less than 4 bullets
+Q[0:4*max_bullets, game.move.Move.ROCKET.value] = -np.inf
+
+#cannot attack if we have zero bullets
+#do we need this?
+#Q[0:max_bullets, game.move.Move.SHOOT.value] = -np.inf
+#we are not allowing reload if we have max bullets
+#Q[(max_bullets-1)*max_bullets:, game.move.Move.RELOAD.value] = -np.inf
 
 agent = Agent("Agent")
 random_agent = Agent("RandomAgent")
@@ -54,12 +64,7 @@ for i in range(iterations):
             
             sum_v = 0
             
-            if a == game.move.Move.RELOAD:
-                num_bullets_next = num_bullets + 1
-            elif a == game.move.Move.SHOOT:
-                num_bullets_next = num_bullets - 1
-            else:
-                num_bullets_next = num_bullets
+            num_bullets_next = num_bullets + agent.get_bullet_diff(a)
             
             for j in range(op_valid_actions.shape[0]):
                 if op_valid_actions[j] == 0:
@@ -67,12 +72,7 @@ for i in range(iterations):
                 
                 op_a = game.move.move_dict[j]
                 
-                if op_a == game.move.Move.RELOAD:
-                    op_num_bullets_next = op_num_bullets + 1
-                elif op_a == game.move.Move.SHOOT:
-                    op_num_bullets_next = op_num_bullets - 1
-                else:
-                    op_num_bullets_next = op_num_bullets
+                op_num_bullets_next = op_num_bullets + random_agent.get_bullet_diff(op_a)
                 
                 s_next = get_state(num_bullets_next, op_num_bullets_next)
                 

@@ -22,18 +22,9 @@ class AdvancedShootoutEnv(gym.Env):
         
         reward = get_reward(action, hidden_agent_action)
         if reward != 0:
-            self.done = 1
-        else:
-            self.done = 0
-        
-        if action == Move.SHOOT and hidden_agent_action == Move.RELOAD:
             self.done = True
-            reward = 1
-        elif action == Move.RELOAD and hidden_agent_action == Move.SHOOT:
-            self.done = True
-            reward = -1
         else:
-            reward = 0
+            self.done = False
         
         #now can update hidden and external agent
         self.hidden_agent.make_action(hidden_agent_action)
@@ -56,11 +47,47 @@ class AdvancedShootoutEnv(gym.Env):
         return copy.deepcopy(self.hidden_agent)
     
 def get_reward(action_a, action_b):
-        if action_a == Move.SHOOT and action_b == Move.RELOAD:
-            reward = 1
-        elif action_a == Move.RELOAD and action_b == Move.SHOOT:
-            reward = -1
-        else:
-            reward = 0
-        return reward
+    if action_a not in [Move.SHIELD, Move.RELOAD, Move.SHOOT, Move.SHOTGUN, Move.ROCKET]:
+        raise Exception("Illegal action_a detected: " + str(action_a))
+    if action_b not in [Move.SHIELD, Move.RELOAD, Move.SHOOT, Move.SHOTGUN, Move.ROCKET]:
+        raise Exception("Illegal action_b detected: " + str(action_b))
     
+    #if a shields and b rockets, a loses
+    #otherwise, game continues
+    if action_a == Move.SHIELD:
+        if action_b == Move.ROCKET:
+            return -1
+        else:
+            return 0
+    #if a reloads and b shoots, shotguns, or rockets, a loses
+    #otherwise if a reloads game continues 
+    elif action_a == Move.RELOAD:
+        if action_b in [Move.SHOOT, Move.SHOTGUN, Move.ROCKET]:
+            return -1
+        else:
+            return 0
+    #if a shoots and b shoots or shields, game continues
+    #if a shoots and b reloads, a wins
+    #if a shoots and b shotguns or rockets, a loses
+    elif action_a == Move.SHOOT:
+        if action_b in [Move.SHOOT, Move.SHIELD]:
+            return 0
+        elif action_b == Move.RELOAD:
+            return 1
+        else:
+            return -1
+    #if a shotguns and b shields, shotguns, or rockets, game continues
+    #if a shotguns and b reloads, or shoots, a wins
+    elif action_a == Move.SHOTGUN:
+        if action_b in [Move.SHIELD, Move.SHOTGUN, Move.ROCKET]:
+            return 0
+        else:
+            return 1
+    #if a rockets and b shotguns, game continues
+    #otherwise a wins
+    else:
+        if action_b == Move.SHOTGUN:
+            return 0
+        else:
+            return 1
+        
