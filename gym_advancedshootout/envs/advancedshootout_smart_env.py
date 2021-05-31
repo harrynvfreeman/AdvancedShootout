@@ -1,21 +1,21 @@
 import gym
 from gym import error, spaces, utils
 from gym.utils import seeding
-from game.random_agent import RandomAgent
+from game.smart_agent import SmartAgent
 from game.move import Move
 import copy
 
-class AdvancedShootoutRandomEnv(gym.Env):
+class AdvancedShootoutSmartEnv(gym.Env):
     metadata = {'render.modes': ['human']}
     def __init__(self):
-        self.hidden_agent = RandomAgent()
+        self.hidden_agent = SmartAgent()
         self.done = None
         self.reset()
         
-    def step(self, action, observation=None):
+    def step(self, action, opponent):
         if self.done:
             raise Exception("Cannot make move when done. Please reset.")
-        hidden_agent_move = self.hidden_agent.get_action(observation)
+        hidden_agent_move = self.hidden_agent.get_action(opponent)
         outside_agent_move = action
         
         if outside_agent_move == Move.SHOOT and hidden_agent_move == Move.RELOAD:

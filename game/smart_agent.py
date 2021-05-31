@@ -6,7 +6,7 @@ input_dict = {"s": game.move.Move.SHIELD,
               "f": game.move.Move.SHOOT}
 
 class SmartAgent:
-    def __init__(self, name="HumanAgent"):
+    def __init__(self, name="SmartAgent"):
         self.name = name
         self.num_bullets = None
         self.valid_moves = None
