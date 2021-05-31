@@ -1,3 +1,8 @@
+game/env/__pycache__/advancedshootout_env.cpython-38.pyc
+game/agent/__pycache__/smart_agent.cpython-38.pyc
+game/agent/__pycache__/random_agent.cpython-38.pyc
+game/agent/__pycache__/agent.cpython-38.pyc
+gym_advancedshootout/envs/__pycache__/*
 gym_advancedshootout/envs/__pycache__/__init__.cpython-38.pyc
 gym_advancedshootout/__pycache__/__init__.cpython-38.pyc
 gym_advancedshootout/envs/__pycache__/advancedshootout_smart_env.cpython-38.pyc

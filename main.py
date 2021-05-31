@@ -1,11 +1,11 @@
 import gym
 import gym_advancedshootout
-from game.random_agent import RandomAgent
-from game.human_agent import HumanAgent
-from game.smart_agent import SmartAgent
+from game.agent.random_agent import RandomAgent
+from game.agent.human_agent import HumanAgent
+from game.agent.smart_agent import SmartAgent
 import copy
 
-env_type = "smart"
+env_type = "random"
 agent_type = "smart"
 safe_guard = 1000
 
@@ -30,9 +30,9 @@ print('')
 while (not done) and (move_count < safe_guard):
     move_count = move_count + 1
     
-    agent_prev = copy.deepcopy(agent)
-    action = agent.get_action(observation)
-    observation, reward, done, _ = env.step(action, agent_prev)
+    action = agent.get_next_action(observation)
+    agent.make_action(action)
+    observation, reward, done, _ = env.step(action)
     print(observation.name + " did " + str(observation.last_action) + " and has " + str(observation.num_bullets) + " bullets")
     print(agent.name + " did " + str(agent.last_action) + " and has " + str(agent.num_bullets) + " bullets")
     print('')

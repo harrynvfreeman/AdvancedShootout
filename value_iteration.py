@@ -1,7 +1,7 @@
 import numpy as np
 import game.move
-#doesn't have to be random agent, I should have a base class
-from game.random_agent import RandomAgent
+from game.agent.agent import Agent
+from game.agent.random_agent import RandomAgent
 
 max_bullets = 20
 def get_num_bullets(s):
@@ -9,22 +9,6 @@ def get_num_bullets(s):
 
 def get_op_num_bullets(s):
     return s % max_bullets
-
-def get_valid_actions(s):
-    #no bullets
-    if get_num_bullets(s) == 0:
-        return [game.move.Move.SHIELD, game.move.Move.RELOAD]
-    if get_num_bullets(s) == max_bullets - 1:
-        return [game.move.Move.SHIELD, game.move.Move.SHOOT]
-    return [game.move.Move.SHIELD, game.move.Move.RELOAD, game.move.Move.SHOOT]
-
-def get_op_valid_actions(s):
-    #no bullets
-    if get_op_num_bullets(s) == 0:
-        return [game.move.Move.SHIELD, game.move.Move.RELOAD]
-    if get_op_num_bullets(s) == max_bullets - 1:
-        return [game.move.Move.SHIELD, game.move.Move.SHOOT]
-    return [game.move.Move.SHIELD, game.move.Move.RELOAD, game.move.Move.SHOOT]
 
 def get_state(num_bullets, op_num_bullets):
     return num_bullets * max_bullets + op_num_bullets
@@ -36,19 +20,37 @@ Q[0:max_bullets, game.move.Move.SHOOT.value] = -np.inf
 #we are not allowing reload if we have max bullets
 Q[(max_bullets-1)*max_bullets:, game.move.Move.RELOAD.value] = -np.inf
 
-agent = RandomAgent("Agent")
-random_agent = RandomAgent()
+agent = Agent("Agent")
+random_agent = Agent("RandomAgent")
 
 
 discount_factor = .9
 
-iterations = 50
+iterations = 20
 for i in range(iterations):
     Q_previous = Q.copy()
     for s in range(num_states):
         num_bullets = get_num_bullets(s)
         op_num_bullets = get_op_num_bullets(s)
-        for a in get_valid_actions(s):
+        
+        agent.force_num_bullets(num_bullets)
+        random_agent.force_num_bullets(op_num_bullets)
+        
+        valid_actions = agent.get_valid_actions()
+        if num_bullets == max_bullets - 1:
+            valid_actions[game.move.Move.RELOAD.value] = 0
+        
+        op_valid_actions = random_agent.get_valid_actions()
+        if op_num_bullets == max_bullets - 1:
+            op_valid_actions[game.move.Move.RELOAD.value] = 0
+        prob = 1.0 / np.sum(op_valid_actions)
+        
+        for i in range(valid_actions.shape[0]):
+            if valid_actions[i] == 0:
+                continue
+            
+            a = game.move.move_dict[i]
+            
             sum_v = 0
             
             if a == game.move.Move.RELOAD:
@@ -58,9 +60,12 @@ for i in range(iterations):
             else:
                 num_bullets_next = num_bullets
             
-            op_actions = get_op_valid_actions(s)
-            prob = 1.0 / len(op_actions)
-            for op_a in op_actions:
+            for j in range(op_valid_actions.shape[0]):
+                if op_valid_actions[j] == 0:
+                    continue
+                
+                op_a = game.move.move_dict[j]
+                
                 if op_a == game.move.Move.RELOAD:
                     op_num_bullets_next = op_num_bullets + 1
                 elif op_a == game.move.Move.SHOOT:
@@ -82,3 +87,4 @@ for i in range(iterations):
             Q[s, a.value] = sum_v
             
 np.save('Q.npy', Q)
+np.save('max_bullets.npy', max_bullets)
