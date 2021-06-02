@@ -1,7 +1,7 @@
 import numpy as np
 import game.move
 from game.agent.agent import Agent
-from game.agent.smart_agent import SmartAgent
+from game.agent.random_agent import RandomAgent
 from game.env.advancedshootout_env import get_reward
 import os
 
@@ -32,12 +32,9 @@ Q[0:4*max_bullets, game.move.Move.ROCKET.value] = -np.inf
 #we are not allowing reload if we have max bullets
 #Q[(max_bullets-1)*max_bullets:, game.move.Move.RELOAD.value] = -np.inf
 
-current_version = np.load('./train/version.npy')
-current_Q_path = './train/' + str(current_version) + '/Q.npy'
-current_max_bullets_path = './train/' + str(current_version) + '/max_bullets.npy'
-
 agent = Agent("Agent")
-smart_agent = SmartAgent(current_Q_path, current_max_bullets_path, "SmartAgent")
+random_agent = Agent("RandomAgent")
+
 
 discount_factor = .9
 
@@ -49,13 +46,16 @@ for i in range(iterations):
         op_num_bullets = get_op_num_bullets(s)
         
         agent.force_num_bullets(num_bullets)
-        smart_agent.force_num_bullets(op_num_bullets)
+        random_agent.force_num_bullets(op_num_bullets)
         
         valid_actions = agent.get_valid_actions()
         if num_bullets == max_bullets - 1:
             valid_actions[game.move.Move.RELOAD.value] = 0
         
-        op_probs = smart_agent.get_move_probs(opponent=agent)
+        op_valid_actions = random_agent.get_valid_actions()
+        if op_num_bullets == max_bullets - 1:
+            op_valid_actions[game.move.Move.RELOAD.value] = 0
+        prob = 1.0 / np.sum(op_valid_actions)
         
         for i in range(valid_actions.shape[0]):
             if valid_actions[i] == 0:
@@ -67,23 +67,23 @@ for i in range(iterations):
             
             num_bullets_next = num_bullets + agent.get_bullet_diff(a)
             
-            for j in range(op_probs.shape[0]):
-                if op_probs[j] == 0:
+            for j in range(op_valid_actions.shape[0]):
+                if op_valid_actions[j] == 0:
                     continue
                 
                 op_a = game.move.move_dict[j]
                 
-                op_num_bullets_next = op_num_bullets + smart_agent.get_bullet_diff(op_a)
+                op_num_bullets_next = op_num_bullets + random_agent.get_bullet_diff(op_a)
                 
                 s_next = get_state(num_bullets_next, op_num_bullets_next)
                 
                 R = get_reward(a, op_a)
                 
-                sum_v = sum_v + op_probs[j] * (R + discount_factor * np.max(Q_previous[s_next]))
+                sum_v = sum_v + prob * (R + discount_factor * np.max(Q_previous[s_next]))
                 
             Q[s, a.value] = sum_v
             
-version_number = current_version + 1
+version_number = 0
 if not os.path.exists('./train/' + str(version_number)):
     os.mkdir('./train/' + str(version_number))
 np.save('./train/'+ str(version_number) + '/Q.npy', Q)

@@ -6,10 +6,10 @@ from game.agent.smart_agent import SmartAgent
 from game.move import Move
 import copy
 
-env_type = "smart"
+env_type = "random"
 agent_type = "smart"
 safe_guard = 100
-num_iterations = 100
+num_iterations = 1
 
 if env_type == "random":
     env = gym.make('AdvancedShootoutRandom-v0')
@@ -58,8 +58,8 @@ for i in range(num_iterations):
         
         agent_move_type_count[agent.last_action] = agent_move_type_count[agent.last_action] + 1
         env_move_type_count[observation.last_action] = env_move_type_count[observation.last_action] + 1
-        #print(observation.name + " did " + str(observation.last_action) + " and has " + str(observation.num_bullets) + " bullets")
-        #print(agent.name + " did " + str(agent.last_action) + " and has " + str(agent.num_bullets) + " bullets")
+        print(observation.name + " did " + str(observation.last_action) + " and has " + str(observation.num_bullets) + " bullets")
+        print(agent.name + " did " + str(agent.last_action) + " and has " + str(agent.num_bullets) + " bullets")
         #print('')
 
     #print('')

@@ -55,3 +55,6 @@ class Agent:
     
     def get_next_action(self, opponent=None):
         pass
+    
+    def get_move_probs(self, opponent, max_bullets=None):
+        pass

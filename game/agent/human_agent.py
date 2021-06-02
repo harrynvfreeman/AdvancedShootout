@@ -4,17 +4,23 @@ import numpy as np
 
 input_dict = {"s": game.move.Move.SHIELD,
               "r": game.move.Move.RELOAD,
-              "f": game.move.Move.SHOOT}
+              "f": game.move.Move.SHOOT,
+              "g": game.move.Move.SHOTGUN,
+              "v": game.move.Move.ROCKET}
 
 class HumanAgent(Agent):
     def __init__(self, name="HumanAgent"):
         super().__init__(name)
         
     def get_next_action(self, opponent=None):
-        if self.num_bullets == 0:
+        if self.num_bullets < 1:
             input_string = "Enter move (s-shield, r-reload): "
-        else:
+        elif self.num_bullets < 2:
             input_string = "Enter move (s-shield, r-reload, f-shoot): "
+        elif self.num_bullets < 4:
+            input_string = "Enter move (s-shield, r-reload, f-shoot, g-shotgun): "
+        else:
+            input_string = "Enter move (s-shield, r-reload, f-shoot, g-shotgun, v-rocket): "
             
         valid_input = False
         while not valid_input:
@@ -28,4 +34,7 @@ class HumanAgent(Agent):
                 continue
             valid_input = True
         return action
+    
+    def get_move_probs(self, opponent, max_bullets=None):
+        pass
     
