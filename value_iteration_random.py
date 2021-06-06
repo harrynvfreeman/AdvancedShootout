@@ -83,9 +83,14 @@ for i in range(iterations):
                 
             Q[s, a.value] = sum_v
             
+P = np.zeros(Q.shape)
+for s in range(num_states):
+    index = np.argmax(Q[s])
+    P[s, index] = 1
 version_number = 0
 if not os.path.exists('./train/' + str(version_number)):
     os.mkdir('./train/' + str(version_number))
 np.save('./train/'+ str(version_number) + '/Q.npy', Q)
+np.save('./train/'+ str(version_number) + '/P.npy', P)
 np.save('./train/' + str(version_number) + '/max_bullets.npy', max_bullets)
 np.save('./train/version.npy', version_number)
