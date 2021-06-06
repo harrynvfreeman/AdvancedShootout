@@ -5,23 +5,30 @@ from game.agent.human_agent import HumanAgent
 from game.agent.smart_agent import SmartAgent
 from game.move import Move
 import copy
+import numpy as np
 
 env_type = "random"
 agent_type = "smart"
+deterministic = True
 safe_guard = 100
-num_iterations = 1
+num_iterations = 1000
 
 if env_type == "random":
     env = gym.make('AdvancedShootoutRandom-v0')
 elif env_type == "smart":
     env = gym.make('AdvancedShootoutSmart-v0')
+    env.set_deterministic(deterministic)
 
 if agent_type == "random":
     agent = RandomAgent("Player0")
 elif agent_type == "human":
     agent = HumanAgent("Player0")
 elif agent_type == "smart":
-    agent = SmartAgent("Player0")
+    current_version = np.load('./train/version.npy')
+    #print(current_version)
+    current_P_path = './train/' + str(current_version) + '/P.npy'
+    current_max_bullets_path = './train/' + str(current_version) + '/max_bullets.npy'
+    agent = SmartAgent(current_P_path, current_max_bullets_path, deterministic, "Player0")
     
 uncomplete_count = 0
 agent_win_count = 0
@@ -58,8 +65,8 @@ for i in range(num_iterations):
         
         agent_move_type_count[agent.last_action] = agent_move_type_count[agent.last_action] + 1
         env_move_type_count[observation.last_action] = env_move_type_count[observation.last_action] + 1
-        print(observation.name + " did " + str(observation.last_action) + " and has " + str(observation.num_bullets) + " bullets")
-        print(agent.name + " did " + str(agent.last_action) + " and has " + str(agent.num_bullets) + " bullets")
+        #print(observation.name + " did " + str(observation.last_action) + " and has " + str(observation.num_bullets) + " bullets")
+        #print(agent.name + " did " + str(agent.last_action) + " and has " + str(agent.num_bullets) + " bullets")
         #print('')
 
     #print('')

@@ -26,12 +26,6 @@ Q[0:2*max_bullets, game.move.Move.SHOTGUN.value] = -np.inf
 #cannot shotgun with less than 4 bullets
 Q[0:4*max_bullets, game.move.Move.ROCKET.value] = -np.inf
 
-#cannot attack if we have zero bullets
-#do we need this?
-#Q[0:max_bullets, game.move.Move.SHOOT.value] = -np.inf
-#we are not allowing reload if we have max bullets
-#Q[(max_bullets-1)*max_bullets:, game.move.Move.RELOAD.value] = -np.inf
-
 current_version = np.load('./train/version.npy')
 current_Q_path = './train/' + str(current_version) + '/Q.npy'
 current_max_bullets_path = './train/' + str(current_version) + '/max_bullets.npy'
