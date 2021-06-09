@@ -2,7 +2,31 @@ import game.move
 import numpy as np
 from scipy.optimize import linprog
 
-def solve(A):
+def solve(y, A):
+    m = A.shape[0]
+    n = A.shape[1]
+    
+    c = -np.matmul(y.transpose(), A)
+    
+    #A_ub = None
+    #b_ub = None
+    
+    A_eq = np.ones((1, n))
+    b_eq = np.array([1])
+    
+    bounds = [(0,1)]*n
+    
+    res = linprog(c, A_eq=A_eq, b_eq=b_eq, bounds=bounds)
+    
+    if res.status > 1:
+        raise Exception("Res status is: " + str(res.status))
+    
+    if res.status == 1:
+        print("WARNING WARNING WARNING Res status is 1")
+    
+    return res.x
+
+def solve2(y, A):
     m = A.shape[0]
     n = A.shape[1]
     

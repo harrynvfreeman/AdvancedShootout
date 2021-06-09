@@ -1,3 +1,5 @@
+game/__pycache__/lp_solve.cpython-38.pyc
+__pycache__/
 game/agent/__pycache__/human_agent.cpython-38.pyc
 game/__pycache__/move.cpython-38.pyc
 game/env/__pycache__/advancedshootout_env.cpython-38.pyc

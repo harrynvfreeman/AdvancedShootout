@@ -16,8 +16,21 @@ def get_state(num_bullets, op_num_bullets):
     return num_bullets * max_bullets + op_num_bullets
 
 num_states = max_bullets*max_bullets
-V = np.zeros((num_states))
-P = np.zeros((num_states, game.move.num_moves))
+Q = np.zeros((num_states, game.move.num_moves))
+#we are not allowing reload if we have max bullets
+Q[(max_bullets-1)*max_bullets:, game.move.Move.RELOAD.value] = -np.inf
+#cannot shoot with 0 bullets
+Q[0:max_bullets, game.move.Move.SHOOT.value] = -np.inf
+#cannot shotgun with less than 2 bullets
+Q[0:2*max_bullets, game.move.Move.SHOTGUN.value] = -np.inf
+#cannot shotgun with less than 4 bullets
+Q[0:4*max_bullets, game.move.Move.ROCKET.value] = -np.inf
+
+#cannot attack if we have zero bullets
+#do we need this?
+#Q[0:max_bullets, game.move.Move.SHOOT.value] = -np.inf
+#we are not allowing reload if we have max bullets
+#Q[(max_bullets-1)*max_bullets:, game.move.Move.RELOAD.value] = -np.inf
 
 agent = Agent("Agent")
 random_agent = Agent("RandomAgent")
@@ -26,8 +39,8 @@ random_agent = Agent("RandomAgent")
 discount_factor = .9
 
 iterations = 20
-for iteration in range(iterations):
-    V_previous = V.copy()
+for i in range(iterations):
+    Q_previous = Q.copy()
     for s in range(num_states):
         num_bullets = get_num_bullets(s)
         op_num_bullets = get_op_num_bullets(s)
@@ -44,8 +57,6 @@ for iteration in range(iterations):
             op_valid_actions[game.move.Move.RELOAD.value] = 0
         prob = 1.0 / np.sum(op_valid_actions)
         
-        max_action = None
-        max_action_val = -np.inf
         for i in range(valid_actions.shape[0]):
             if valid_actions[i] == 0:
                 continue
@@ -68,19 +79,18 @@ for iteration in range(iterations):
                 
                 R = get_reward(a, op_a)
                 
-                sum_v = sum_v + prob * (R + discount_factor * V_previous[s_next])
+                sum_v = sum_v + prob * (R + discount_factor * np.max(Q_previous[s_next]))
                 
-            if sum_v > max_action_val:
-                max_action_val = sum_v
-                max_action = a
-        V[s] = max_action_val
-        if iteration == iterations - 1:
-            P[s, max_action.value] = 1
-        
+            Q[s, a.value] = sum_v
+            
+P = np.zeros(Q.shape)
+for s in range(num_states):
+    index = np.argmax(Q[s])
+    P[s, index] = 1
 version_number = 0
 if not os.path.exists('./train/' + str(version_number)):
     os.mkdir('./train/' + str(version_number))
-np.save('./train/'+ str(version_number) + '/V.npy', V)
+np.save('./train/'+ str(version_number) + '/Q.npy', Q)
 np.save('./train/'+ str(version_number) + '/P.npy', P)
 np.save('./train/' + str(version_number) + '/max_bullets.npy', max_bullets)
 np.save('./train/version.npy', version_number)

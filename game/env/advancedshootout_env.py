@@ -83,10 +83,10 @@ def get_reward(action_a, action_b):
             return 0
         else:
             return 1
-    #if a rockets and b shotguns, game continues
+    #if a rockets and b shotguns or rockets, game continues
     #otherwise a wins
     else:
-        if action_b == Move.SHOTGUN:
+        if action_b in [Move.SHOTGUN, Move.ROCKET]:
             return 0
         else:
             return 1
