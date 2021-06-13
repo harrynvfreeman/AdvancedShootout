@@ -46,19 +46,19 @@ move_counts = []
 agent_num_bullets = []
 opponent_num_bullets = []
 
-agent_move_type_count = {Move.SHIELD: 0,
-                         Move.RELOAD: 0,
-                         Move.SHOOT: 0,
-                         Move.SHOTGUN: 0,
-                         Move.ROCKET: 0,
-                         Move.SONIC_BOOM: 0}
+agent_move_type_count = {Move.SHIELD.name: 0,
+                         Move.RELOAD.name: 0,
+                         Move.SHOOT.name: 0,
+                         Move.SHOTGUN.name: 0,
+                         Move.ROCKET.name: 0,
+                         Move.SONIC_BOOM.name: 0}
 
-env_move_type_count = {Move.SHIELD: 0,
-                       Move.RELOAD: 0,
-                       Move.SHOOT: 0,
-                       Move.SHOTGUN: 0,
-                       Move.ROCKET: 0,
-                       Move.SONIC_BOOM: 0}
+env_move_type_count = {Move.SHIELD.name: 0,
+                       Move.RELOAD.name: 0,
+                       Move.SHOOT.name: 0,
+                       Move.SHOTGUN.name: 0,
+                       Move.ROCKET.name: 0,
+                       Move.SONIC_BOOM.name: 0}
 
 for i in range(num_iterations):
     env.reset()
@@ -75,8 +75,8 @@ for i in range(num_iterations):
         agent.make_action(action)
         observation, reward, done, _ = env.step(action)
         
-        agent_move_type_count[agent.last_action] = agent_move_type_count[agent.last_action] + 1
-        env_move_type_count[observation.last_action] = env_move_type_count[observation.last_action] + 1
+        agent_move_type_count[agent.last_action.name] = agent_move_type_count[agent.last_action.name] + 1
+        env_move_type_count[observation.last_action.name] = env_move_type_count[observation.last_action.name] + 1
         
         if agent_type == "human":
             print(observation.name + " did " + str(observation.last_action) + " and has " + str(observation.num_bullets) + " bullets")
@@ -107,5 +107,6 @@ print("Env win count is: " + str(env_win_count))
 
 print('')
 
+print('Move stats: ')
 print(agent_move_type_count)
 print(env_move_type_count)
