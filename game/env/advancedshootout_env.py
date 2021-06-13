@@ -47,10 +47,18 @@ class AdvancedShootoutEnv(gym.Env):
         return copy.deepcopy(self.hidden_agent)
     
 def get_reward(action_a, action_b):
-    if action_a not in [Move.SHIELD, Move.RELOAD, Move.SHOOT, Move.SHOTGUN, Move.ROCKET]:
+    if action_a not in [Move.SHIELD, Move.RELOAD, Move.SHOOT, Move.SHOTGUN, Move.ROCKET, Move.SONIC_BOOM]:
         raise Exception("Illegal action_a detected: " + str(action_a))
-    if action_b not in [Move.SHIELD, Move.RELOAD, Move.SHOOT, Move.SHOTGUN, Move.ROCKET]:
+    if action_b not in [Move.SHIELD, Move.RELOAD, Move.SHOOT, Move.SHOTGUN, Move.ROCKET, Move.SONIC_BOOM]:
         raise Exception("Illegal action_b detected: " + str(action_b))
+    
+    #sonic boom case
+    if action_a == Move.SONIC_BOOM and action_b != Move.SONIC_BOOM:
+        return 1
+    if action_a != Move.SONIC_BOOM and action_b == Move.SONIC_BOOM:
+        return -1
+    if action_a == Move.SONIC_BOOM and action_b == Move.SONIC_BOOM:
+        return 0
     
     #if a shields and b rockets, a loses
     #otherwise, game continues

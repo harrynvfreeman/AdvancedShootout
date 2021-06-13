@@ -6,21 +6,24 @@ input_dict = {"s": game.move.Move.SHIELD,
               "r": game.move.Move.RELOAD,
               "f": game.move.Move.SHOOT,
               "g": game.move.Move.SHOTGUN,
-              "v": game.move.Move.ROCKET}
+              "v": game.move.Move.ROCKET,
+              "b": game.move.Move.SONIC_BOOM}
 
 class HumanAgent(Agent):
     def __init__(self, name="HumanAgent"):
         super().__init__(name)
         
     def get_next_action(self, opponent=None):
-        if self.num_bullets < 1:
+        if self.num_bullets < game.move.move_bullet_cost[game.move.Move.SHOOT.value]:
             input_string = "Enter move (s-shield, r-reload): "
-        elif self.num_bullets < 2:
+        elif self.num_bullets < game.move.move_bullet_cost[game.move.Move.SHOTGUN.value]:
             input_string = "Enter move (s-shield, r-reload, f-shoot): "
-        elif self.num_bullets < 4:
+        elif self.num_bullets < game.move.move_bullet_cost[game.move.Move.ROCKET.value]:
             input_string = "Enter move (s-shield, r-reload, f-shoot, g-shotgun): "
-        else:
+        elif self.num_bullets < game.move.move_bullet_cost[game.move.Move.SONIC_BOOM.value]:
             input_string = "Enter move (s-shield, r-reload, f-shoot, g-shotgun, v-rocket): "
+        else:
+            input_string = "Enter move (s-shield, r-reload, f-shoot, g-shotgun, v-rocket, b-sonic_boom): "
             
         valid_input = False
         while not valid_input:

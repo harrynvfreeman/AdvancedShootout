@@ -7,7 +7,7 @@ class DumbAgent(Agent):
         super().__init__(name)
     
     def get_next_action(self, opponent):
-        if self.num_bullets == 4:
+        if self.num_bullets == game.move.move_bullet_cost[game.move.Move.ROCKET.value]:
             return game.move.Move.ROCKET
         else:
             return game.move.Move.RELOAD

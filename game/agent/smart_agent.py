@@ -8,9 +8,6 @@ class SmartAgent(Agent):
         self.P = np.load(P_path)
         self.max_bullets = np.load(max_bullets_path)
         self.deterministic = deterministic
-        
-    def set_deterministic(self, deterministic):
-        self.deterministic = deterministic
     
     def get_next_action(self, opponent):
         s = np.min([self.max_bullets - 1, self.num_bullets]) * self.max_bullets + np.min([self.max_bullets - 1, opponent.num_bullets])

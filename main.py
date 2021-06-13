@@ -1,5 +1,6 @@
 import gym
 import gym_advancedshootout
+from gym_advancedshootout.envs.advancedshootout_smart_env import AdvancedShootoutSmartEnv
 from game.agent.random_agent import RandomAgent
 from game.agent.human_agent import HumanAgent
 from game.agent.smart_agent import SmartAgent
@@ -9,7 +10,9 @@ import copy
 import numpy as np
 
 env_type = "smart"
-agent_type = "smart"
+env_version = None
+agent_type = "human"
+agent_version = None
 deterministic = False
 safe_guard = 100
 num_iterations = 1000
@@ -17,8 +20,9 @@ num_iterations = 1000
 if env_type == "random":
     env = gym.make('AdvancedShootoutRandom-v0')
 elif env_type == "smart":
+    AdvancedShootoutSmartEnv.set_deterministic(deterministic)
+    AdvancedShootoutSmartEnv.set_version(env_version)
     env = gym.make('AdvancedShootoutSmart-v0')
-    env.set_deterministic(deterministic)
 
 if agent_type == "random":
     agent = RandomAgent("Player0")
@@ -26,11 +30,11 @@ elif agent_type == "human":
     agent = HumanAgent("Player0")
     num_iterations = 1
 elif agent_type == "smart":
-    current_version = np.load('./train/version.npy')
-    #print(current_version)
-    current_P_path = './train/' + str(current_version) + '/P.npy'
-    current_max_bullets_path = './train/' + str(current_version) + '/max_bullets.npy'
-    agent = SmartAgent(current_P_path, current_max_bullets_path, deterministic, "Player0")
+    if agent_version is None:
+        agent_version = np.load('./train/version.npy')
+    agent_P_path = './train/' + str(agent_version) + '/P.npy'
+    agent_max_bullets_path = './train/' + str(agent_version) + '/max_bullets.npy'
+    agent = SmartAgent(agent_P_path, agent_max_bullets_path, deterministic, "Player0")
 elif agent_type == "dumb":
     agent = DumbAgent("Player0")
     
@@ -39,18 +43,22 @@ agent_win_count = 0
 env_win_count = 0
 incorrect_state_count = 0
 move_counts = []
+agent_num_bullets = []
+opponent_num_bullets = []
 
 agent_move_type_count = {Move.SHIELD: 0,
                          Move.RELOAD: 0,
                          Move.SHOOT: 0,
                          Move.SHOTGUN: 0,
-                         Move.ROCKET: 0}
+                         Move.ROCKET: 0,
+                         Move.SONIC_BOOM: 0}
 
 env_move_type_count = {Move.SHIELD: 0,
                        Move.RELOAD: 0,
                        Move.SHOOT: 0,
                        Move.SHOTGUN: 0,
-                       Move.ROCKET: 0}
+                       Move.ROCKET: 0,
+                       Move.SONIC_BOOM: 0}
 
 for i in range(num_iterations):
     env.reset()
@@ -74,11 +82,10 @@ for i in range(num_iterations):
             print(observation.name + " did " + str(observation.last_action) + " and has " + str(observation.num_bullets) + " bullets")
             print(agent.name + " did " + str(agent.last_action) + " and has " + str(agent.num_bullets) + " bullets")
             print('')
-
-    #print('')
-    #print('')
-    #print('Num moves was: ' + str(move_count))
+            
     move_counts.append(move_count)
+    agent_num_bullets.append(agent.num_bullets)
+    opponent_num_bullets.append(observation.num_bullets)
 
     if not done:
         #print("Game did not end")

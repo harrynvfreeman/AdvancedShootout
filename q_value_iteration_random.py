@@ -19,25 +19,19 @@ num_states = max_bullets*max_bullets
 Q = np.zeros((num_states, game.move.num_moves))
 #we are not allowing reload if we have max bullets
 Q[(max_bullets-1)*max_bullets:, game.move.Move.RELOAD.value] = -np.inf
-#cannot shoot with 0 bullets
-Q[0:max_bullets, game.move.Move.SHOOT.value] = -np.inf
-#cannot shotgun with less than 2 bullets
-Q[0:2*max_bullets, game.move.Move.SHOTGUN.value] = -np.inf
-#cannot shotgun with less than 4 bullets
-Q[0:4*max_bullets, game.move.Move.ROCKET.value] = -np.inf
-
-#cannot attack if we have zero bullets
-#do we need this?
-#Q[0:max_bullets, game.move.Move.SHOOT.value] = -np.inf
-#we are not allowing reload if we have max bullets
-#Q[(max_bullets-1)*max_bullets:, game.move.Move.RELOAD.value] = -np.inf
+#cannot shoot with less than shoot bullets
+Q[0:(max_bullets*game.move.move_bullet_cost[game.move.Move.SHOOT.value]), game.move.Move.SHOOT.value] = -np.inf
+#cannot shotgun with less than shotgun bullets
+Q[0:(max_bullets*game.move.move_bullet_cost[game.move.Move.SHOTGUN.value]), game.move.Move.SHOTGUN.value] = -np.inf
+#cannot rocket with less than rocket bullets
+Q[0:(max_bullets*game.move.move_bullet_cost[game.move.Move.ROCKET.value]), game.move.Move.ROCKET.value] = -np.inf
+#cannot sonic boom with less than sonic boom bullets
+Q[0:(max_bullets*game.move.move_bullet_cost[game.move.Move.SONIC_BOOM.value]), game.move.Move.SONIC_BOOM.value] = -np.inf
 
 agent = Agent("Agent")
 random_agent = Agent("RandomAgent")
 
-
-discount_factor = .9
-
+discount_factor = .99
 iterations = 20
 for i in range(iterations):
     Q_previous = Q.copy()
@@ -79,8 +73,11 @@ for i in range(iterations):
                 
                 R = get_reward(a, op_a)
                 
-                sum_v = sum_v + prob * (R + discount_factor * np.max(Q_previous[s_next]))
-                
+                if R == 0:
+                    sum_v = sum_v + prob * (R + discount_factor * np.max(Q_previous[s_next]))
+                else:
+                    sum_v = sum_v + prob * (R)
+                    
             Q[s, a.value] = sum_v
             
 P = np.zeros(Q.shape)

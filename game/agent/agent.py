@@ -30,9 +30,8 @@ class Agent:
         self.last_action = action
         
     def update_valid_actions(self):
-        self.valid_moves[game.move.Move.SHOOT.value] =  self.num_bullets >= 1
-        self.valid_moves[game.move.Move.SHOTGUN.value] =  self.num_bullets >= 2
-        self.valid_moves[game.move.Move.ROCKET.value] =  self.num_bullets >= 4
+        for i in range(self.valid_moves.shape[0]):
+            self.valid_moves[i] = self.num_bullets >= game.move.move_bullet_cost[i]
     
     def force_num_bullets(self, num_bullets):
         if num_bullets < 0:
@@ -42,16 +41,7 @@ class Agent:
         self.update_valid_actions()
         
     def get_bullet_diff(self, action):
-        if action == game.move.Move.SHIELD:
-            return 0
-        if action == game.move.Move.RELOAD:
-            return 1
-        if action == game.move.Move.SHOOT:
-            return -1
-        if action == game.move.Move.SHOTGUN:
-            return -2
-        if action == game.move.Move.ROCKET:
-            return -4
+        return game.move.move_bullet_gain[action.value] - game.move.move_bullet_cost[action.value]
     
     def get_next_action(self, opponent=None):
         pass

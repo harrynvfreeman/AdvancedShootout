@@ -22,9 +22,7 @@ P = np.zeros((num_states, game.move.num_moves))
 agent = Agent("Agent")
 random_agent = Agent("RandomAgent")
 
-
-discount_factor = .9
-
+discount_factor = .99
 iterations = 20
 for iteration in range(iterations):
     V_previous = V.copy()
@@ -68,8 +66,11 @@ for iteration in range(iterations):
                 
                 R = get_reward(a, op_a)
                 
-                sum_v = sum_v + prob * (R + discount_factor * V_previous[s_next])
-                
+                if R == 0:
+                    sum_v = sum_v + prob * (R + discount_factor * V_previous[s_next])
+                else:
+                    sum_v = sum_v + prob * (R)
+                    
             if sum_v > max_action_val:
                 max_action_val = sum_v
                 max_action = a
