@@ -3,10 +3,10 @@ import game.move
 import numpy as np
 
 class SmartAgent(Agent):
-    def __init__(self, P_path, max_bullets_path, deterministic=True, name="SmartAgent"):
+    def __init__(self, P_path, deterministic=True, name="SmartAgent"):
         super().__init__(name)
         self.P = np.load(P_path)
-        self.max_bullets = np.load(max_bullets_path)
+        self.max_bullets = game.move.move_bullet_cost[game.move.Move.SONIC_BOOM.value]
         self.deterministic = deterministic
     
     def get_next_action(self, opponent):

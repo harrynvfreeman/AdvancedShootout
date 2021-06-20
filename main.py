@@ -5,14 +5,17 @@ from game.agent.random_agent import RandomAgent
 from game.agent.human_agent import HumanAgent
 from game.agent.smart_agent import SmartAgent
 from game.agent.dumb_agent import DumbAgent
+from game.agent.cheeky_agent import CheekyAgent
 from game.move import Move
 import copy
 import numpy as np
 
 env_type = "smart"
-env_version = None
-agent_type = "human"
-agent_version = None
+env_version = 15
+env_best = True
+agent_type = "smart"
+agent_version = 1
+agent_best = False
 deterministic = False
 safe_guard = 100
 num_iterations = 1000
@@ -22,6 +25,7 @@ if env_type == "random":
 elif env_type == "smart":
     AdvancedShootoutSmartEnv.set_deterministic(deterministic)
     AdvancedShootoutSmartEnv.set_version(env_version)
+    AdvancedShootoutSmartEnv.set_best(env_best)
     env = gym.make('AdvancedShootoutSmart-v0')
 
 if agent_type == "random":
@@ -32,11 +36,15 @@ elif agent_type == "human":
 elif agent_type == "smart":
     if agent_version is None:
         agent_version = np.load('./train/version.npy')
-    agent_P_path = './train/' + str(agent_version) + '/P.npy'
-    agent_max_bullets_path = './train/' + str(agent_version) + '/max_bullets.npy'
-    agent = SmartAgent(agent_P_path, agent_max_bullets_path, deterministic, "Player0")
+    if agent_best:
+        agent_P_path = './train/best/P.npy'
+    else:
+        agent_P_path = './train/' + str(agent_version) + '/P.npy'
+    agent = SmartAgent(agent_P_path, deterministic, "Player0")
 elif agent_type == "dumb":
     agent = DumbAgent("Player0")
+elif agent_type == "cheeky":
+    agent = CheekyAgent("Player0")
     
 uncomplete_count = 0
 agent_win_count = 0
