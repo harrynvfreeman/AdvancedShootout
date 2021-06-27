@@ -115,7 +115,7 @@ def evaluate(num_games=1000, max_move_count=20, win_percent=0.55):
     print('Win rate is: ' + str(challenger_win_count / num_games))
     print('Loss rate is: ' + str(challenger_loss_count / num_games))
     print('Draw rate is: ' + str(draw_count / num_games))
-    if True or challenger_win_count / num_games >= win_percent:
+    if challenger_win_count / num_games >= win_percent:
         best_version = best_version + 1
         os.mkdir('./train/' + best_player_dir + '/' + str(best_version))
         os.system('cp ./train/' + str(version) + '/P.npy ' './train/' + best_player_dir + '/' + str(best_version) + '/P.npy')
