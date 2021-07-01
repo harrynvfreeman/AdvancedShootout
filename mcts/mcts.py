@@ -6,6 +6,7 @@ from game.agent.agent import Agent
 from game.env.advancedshootout_env import get_reward
 import numpy as np
 import gc
+import pickle
 
 max_bullets = move_bullet_cost[Move.SONIC_BOOM.value]
 
@@ -75,7 +76,7 @@ class Node:
         self.parent_a_edge = None
         self.parent_b_edge = None
         
-    def select_edge(self, is_player_a):
+    def select_edge(self, is_player_a, cpuct=10):
         if self.is_leaf:
             raise Exception("Cannot select on leaf node")
         
@@ -111,12 +112,12 @@ class Node:
             
         
         N_total = np.sum(N)
-        #cpuct = np.log((1 + N_total + cbase)/cbase) + cinit
-        #cpuct = 1.5
-        cpuct = 5
-        U = cpuct*P*np.sqrt(N_total)/(1 + N)
         
+        #we are adding 1 to N_total because we will try parent node count
+        U = cpuct*P*np.sqrt(N_total + 1)/(1 + N)
+
         to_max = Q + U
+        
         action_index = np.random.choice(np.flatnonzero(np.isclose(to_max, to_max.max())))   #np.argmax(Q+U)
         
         if not is_legal_move(state, move_dict[action_index]):
@@ -147,11 +148,13 @@ class Node:
                 N[i] = np.power(N[i], 1/temp)
         
         N_total = np.sum(N)
+        
         pi = N / N_total
         if use_temp:
             return move_dict[np.random.choice(num_moves, p=pi)], pi
         else:
-            return move_dict[np.argmax(N)], pi
+            arg_max = np.random.choice(np.flatnonzero(np.isclose(N, N.max()))) #np.argmax(N)
+            return move_dict[arg_max], pi
         
 class Edge:
     def __init__(self, parent_node, p, action):
@@ -212,19 +215,32 @@ class Tree:
         if not node.is_leaf:
             raise Exception("Cannot call expand and evaluate on non-leaf node")
         
-        v_a = self.V[node.state]
-        p_a = self.P[node.state]
+        v_a = np.array(self.V[node.state])
+        p_a = np.array(self.P[node.state])
         
         inverted_state = invert_state(node.state)
-        v_b = self.V[inverted_state]
-        p_b = self.P[inverted_state]
+        v_b = np.array(self.V[inverted_state])
+        p_b = np.array(self.P[inverted_state])
         
         #if game over we do not expand or evaluate
         if reward != 0:
             return v_a, v_b
             #return reward, -reward
         
-        #WARNING WARNING WARNING check here if valid move?
+        #dirichlet noise if root
+        if node.id == self.root.id:
+            dirichlet_a = np.random.dirichlet([0.03]*num_moves)
+            dirichlet_b = np.random.dirichlet([0.03]*num_moves)
+            
+            for i in range(num_moves):
+                if is_legal_move(node.state, move_dict[i]):
+                    p_a[i] = (1-0.25)*p_a[i] + (0.25)*dirichlet_a[i]
+                if is_legal_move(inverted_state, move_dict[i]):
+                    p_b[i] = (1-0.25)*p_b[i] + (0.25)*dirichlet_b[i]
+                    
+            p_a = p_a / p_a.sum()
+            p_b = p_b / p_b.sum()
+        
         for i in range(num_moves):
             node.a_edges[i] = Edge(node, p_a[i], move_dict[i])
             node.b_edges[i] = Edge(node, p_b[i], move_dict[i])
@@ -270,19 +286,13 @@ class Tree:
         next_state, reward = get_next_state(node.state, action_a, action_b, self.player_a, self.player_b)
         
         if node.children[action_a.value + num_moves*action_b.value] is None:
-            print("--------------")
-            print("Node state: ", node.state)
-            print("Action a: ", action_a)
-            print("Action b: ", action_b)
-            print("Index: ", action_a.value + num_moves*action_b.value)
-            print("Node children: ", node.children)
-            print("Next state: ", next_state)
-            raise Exception('None visited node in next state')
-        
-        if node.children[action_a.value + num_moves*action_b.value].parent_a_edge is not None:
-            raise Exception("Why is parent a edge not none?")
-        if node.children[action_a.value + num_moves*action_b.value].parent_b_edge is not None:
-            raise Exception("Why is parent b endge not none?")
+            node.children[action_a.value + num_moves*action_b.value] = Node(next_state, self.node_id_counter, parent=node)
+            self.node_id_counter = self.node_id_counter + 1
+        else:
+            if node.children[action_a.value + num_moves*action_b.value].parent_a_edge is not None:
+                raise Exception("Why is parent a edge not none?")
+            if node.children[action_a.value + num_moves*action_b.value].parent_b_edge is not None:
+                raise Exception("Why is parent b edge not none?")
         
         self.root = node.children[action_a.value + num_moves*action_b.value]
         self.root.parent = None

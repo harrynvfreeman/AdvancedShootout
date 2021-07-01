@@ -8,8 +8,8 @@ import pickle
 import os
 import copy
 
-counter_max = 1000
-alpha = 0.1
+counter_max = 200000
+alpha = 0.2
 
 class SavedState:
     def __init__(self, state, V, P):
@@ -24,7 +24,8 @@ max_bullets = game.move.move_bullet_cost[game.move.Move.SONIC_BOOM.value]
 num_states = (max_bullets+1)*(max_bullets+1)
 
 def initialize():
-    P = np.random.rand(num_states, game.move.num_moves)
+    #P = np.random.rand(num_states, game.move.num_moves)
+    P = np.ones((num_states, game.move.num_moves))
     #we are not allowing reload if we have max bullets
     P[(max_bullets)*(max_bullets+1):, game.move.Move.RELOAD.value] = 0
     #cannot shoot with less than reload bullets
@@ -37,7 +38,8 @@ def initialize():
     P[0:((max_bullets+1)*game.move.move_bullet_cost[game.move.Move.SONIC_BOOM.value]), game.move.Move.SONIC_BOOM.value] = 0
     
     P = P / P.sum(axis=1, keepdims=True)
-    V = np.random.uniform(low=-1.0, high=1.0, size=num_states)
+    V = np.zeros((num_states))
+    #V = np.random.uniform(low=-1.0, high=1.0, size=num_states)
     
     os.system('rm -rf ./train/*')
     os.mkdir('./train/' + best_player_dir)
@@ -55,20 +57,34 @@ def initialize():
     
     np.save('./train/count.npy', -1)
 
-def optimize(batch_size=32, num_training_steps=100):
+def optimize(batch_size=2048, num_training_steps=1000):
     version = np.load('./train/version.npy')
     V = np.load('./train/' + str(version) + '/V.npy')
     P = np.load('./train/' + str(version) + '/P.npy')
     for i in range(num_training_steps):
         saved_states = os.listdir('./train/' + self_play_data_dir)
+        
+        #don't have enough training data
+        if len(saved_states) < batch_size:
+            return
         indeces = np.random.choice(len(saved_states), size=batch_size, replace=False)
+        
+        v_sum = 0
+        p_sum = np.zeros((game.move.num_moves))
         for index in indeces:
             path = './train/' + self_play_data_dir + '/' + saved_states[index]
             with open(path, 'rb') as handle:
                 saved_state = pickle.load(handle)
             state = saved_state.state
-            V[state] = (1-alpha)*V[state] + (alpha)*saved_state.V
-            P[state, :] = (1-alpha)*P[state, :] + (alpha)*saved_state.P[:]
+            v_sum = v_sum + saved_state.V
+            p_sum = p_sum + saved_state.P[:]
+        
+        v_sum = v_sum / batch_size
+        p_sum = p_sum / batch_size
+        
+        V[state] = (1-alpha)*V[state] + (alpha)*v_sum
+        P[state, :] = (1-alpha)*P[state, :] + (alpha)*p_sum
+        P[state, :] = P[state, :] / P[state, :].sum()
             
     version = version + 1
     os.mkdir('./train/' + str(version))
@@ -76,7 +92,7 @@ def optimize(batch_size=32, num_training_steps=100):
     np.save('./train/' + str(version) + '/P.npy', P)
     np.save('./train/version.npy', version)
     
-def evaluate(num_games=1000, max_move_count=20, win_percent=0.55):
+def evaluate(num_games=400, max_move_count=20, win_percent=0.55):
     version = np.load('./train/version.npy')
     best_version = np.load('./train/' + best_player_dir + '/best_version.npy')
     challenger_P_path = './train/' + str(version) + '/P.npy'
@@ -126,7 +142,7 @@ def evaluate(num_games=1000, max_move_count=20, win_percent=0.55):
         return False
     
 
-def self_play(num_iterations=10):
+def self_play(num_iterations=1000):
     best_version = np.load('./train/' + best_player_dir + '/best_version.npy')
     P = np.load('./train/'+ best_player_dir + '/' + str(best_version) + '/P.npy')
     V = np.load('./train/'+ best_player_dir + '/' + str(best_version) + '/V.npy')
