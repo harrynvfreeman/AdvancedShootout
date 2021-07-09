@@ -9,7 +9,7 @@ import os
 import copy
 
 counter_max = 200000
-alpha = 0.2
+alpha = 0.7
 
 class SavedState:
     def __init__(self, state, V, P):
@@ -38,9 +38,12 @@ def initialize():
     P[0:((max_bullets+1)*game.move.move_bullet_cost[game.move.Move.SONIC_BOOM.value]), game.move.Move.SONIC_BOOM.value] = 0
     
     P = P / P.sum(axis=1, keepdims=True)
-    V = np.zeros((num_states))
+    #V = np.zeros((num_states))
     #V = np.random.uniform(low=-1.0, high=1.0, size=num_states)
-    
+    V = np.random.normal(loc=0, scale = 0.05, size=num_states)
+    V[V<-1] = -1
+    V[V>1] = 1
+
     os.system('rm -rf ./train/*')
     os.mkdir('./train/' + best_player_dir)
     os.mkdir('./train/0')
@@ -57,7 +60,7 @@ def initialize():
     
     np.save('./train/count.npy', -1)
 
-def optimize(batch_size=2048, num_training_steps=1000):
+def optimize(batch_size=2048, num_training_steps=10):
     version = np.load('./train/version.npy')
     V = np.load('./train/' + str(version) + '/V.npy')
     P = np.load('./train/' + str(version) + '/P.npy')
@@ -69,22 +72,36 @@ def optimize(batch_size=2048, num_training_steps=1000):
             return
         indeces = np.random.choice(len(saved_states), size=batch_size, replace=False)
         
-        v_sum = 0
-        p_sum = np.zeros((game.move.num_moves))
+        visited = {}
+        v_sum = np.zeros((num_states))
+        p_sum = np.zeros((num_states, game.move.num_moves))
         for index in indeces:
             path = './train/' + self_play_data_dir + '/' + saved_states[index]
-            with open(path, 'rb') as handle:
-                saved_state = pickle.load(handle)
-            state = saved_state.state
-            v_sum = v_sum + saved_state.V
-            p_sum = p_sum + saved_state.P[:]
+            try:
+                with open(path, 'rb') as handle:
+                    saved_state = pickle.load(handle)
+                state = saved_state.state
+            except:
+                continue
+
+            if visited.get(state) is None:
+                visited[state] = 1
+            else:
+                visited[state] = visited[state] + 1
+            
+            v_sum[state] = v_sum[state] + saved_state.V
+            p_sum[state, :] = p_sum[state, :] + saved_state.P[:]
         
-        v_sum = v_sum / batch_size
-        p_sum = p_sum / batch_size
+        for state in visited:
+            num_visit = visited[state]
+            v_sum[state] = v_sum[state] / num_visit
+            p_sum[state, :] = p_sum[state, :] / num_visit
         
-        V[state] = (1-alpha)*V[state] + (alpha)*v_sum
-        P[state, :] = (1-alpha)*P[state, :] + (alpha)*p_sum
-        P[state, :] = P[state, :] / P[state, :].sum()
+            #V[state] = (1-alpha)*V[state] + (alpha)*v_sum[state]
+            #P[state, :] = (1-alpha)*P[state, :] + (alpha)*p_sum[state, :]
+            V[state] = v_sum[state]
+            P[state, :] = p_sum[state, :]
+            P[state, :] = P[state, :] / P[state, :].sum()
             
     version = version + 1
     os.mkdir('./train/' + str(version))
@@ -178,6 +195,8 @@ def self_play_instance(V, P):
         with open('./train/' + self_play_data_dir + '/' + str(counter) + '.pickle', 'wb') as handle:
             pickle.dump(saved_state, handle, protocol=pickle.HIGHEST_PROTOCOL)
         counter = counter + 1
+        if counter >= counter_max:
+            counter = 0
         #saved_states[i] = saved_state
     
     np.save('./train/count.npy', counter)

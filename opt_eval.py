@@ -23,18 +23,20 @@ win_percent = 0.55
 
 import mcts_iteration
 
-mcts_iteration.initialize()
+#mcts_iteration.initialize()
 
 #mcts_iteration.optimize()
 #if mcts_iteration.evaluate():
 #    print('Best player updated')
 
 #for i in range(100):
-i = 0
+#    print("Starting cycle ", i)
+#    mcts_iteration.self_play()
+i=0
 while True:
-    print("Starting cycle ", i)
+    print('Optimizing ' + str(i))
+    mcts_iteration.optimize()
+    print('Evaluating ' + str(i))
     i = i + 1
-    mcts_iteration.self_play()
-    #mcts_iteration.optimize()
-    #if mcts_iteration.evaluate():
-    #    print('Best player updated')
+    if mcts_iteration.evaluate():
+        print('Best player updated')
