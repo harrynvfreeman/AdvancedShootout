@@ -6,16 +6,16 @@ from game.agent.human_agent import HumanAgent
 from game.agent.smart_agent import SmartAgent
 from game.agent.dumb_agent import DumbAgent
 from game.agent.cheeky_agent import CheekyAgent
+from game.agent.mcts_agent import MctsAgent
 from game.move import Move
-import copy
 import numpy as np
 
-env_type = "smart"
+env_type = "random"
 env_version = 15
 env_best = True
-agent_type = "smart"
+agent_type = "mcts"
 agent_version = 1
-agent_best = False
+agent_best = True
 deterministic = False
 safe_guard = 100
 num_iterations = 1000
@@ -45,7 +45,16 @@ elif agent_type == "dumb":
     agent = DumbAgent("Player0")
 elif agent_type == "cheeky":
     agent = CheekyAgent("Player0")
-    
+elif agent_type == "mcts":
+    if agent_version is None:
+        agent_version = np.load('./train/version.npy')
+    if agent_best:
+        agent_best_version = np.load('./train/best/best_version.npy')
+        agent_path = './train/best/' + str(agent_best_version)
+    else:
+        agent_path = './train/' + str(agent_version)
+    agent = MctsAgent(agent_path, "Player0")
+
 uncomplete_count = 0
 agent_win_count = 0
 env_win_count = 0
@@ -73,15 +82,15 @@ for i in range(num_iterations):
     agent.reset()
     done = False
     move_count = 0
-
+    
     observation = env.get_observation();
-    #print('')
     while (not done) and (move_count < safe_guard):
         move_count = move_count + 1
         
         action = agent.get_next_action(observation)
         agent.make_action(action)
         observation, reward, done, _ = env.step(action)
+        agent.post_move_update(agent.last_action, env.hidden_agent.last_action)
         
         agent_move_type_count[agent.last_action.name] = agent_move_type_count[agent.last_action.name] + 1
         env_move_type_count[observation.last_action.name] = env_move_type_count[observation.last_action.name] + 1

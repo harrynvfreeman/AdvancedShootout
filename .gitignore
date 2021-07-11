@@ -1,3 +1,8 @@
+test
+train_backup
+train
+.DS_Store
+game/.DS_Store
 game/__pycache__/lp_solve.cpython-38.pyc
 __pycache__/
 game/agent/__pycache__/human_agent.cpython-38.pyc

@@ -25,16 +25,11 @@ import mcts_iteration
 
 mcts_iteration.initialize()
 
-#mcts_iteration.optimize()
-#if mcts_iteration.evaluate():
-#    print('Best player updated')
-
-#for i in range(100):
 i = 0
 while True:
-    print("Starting cycle ", i)
+    print("Starting cycle ", i, " -----------------")
     i = i + 1
     mcts_iteration.self_play()
-    #mcts_iteration.optimize()
-    #if mcts_iteration.evaluate():
-    #    print('Best player updated')
+    mcts_iteration.optimize()
+    if mcts_iteration.evaluate():
+        print('Best player updated')

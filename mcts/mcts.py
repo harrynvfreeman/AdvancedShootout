@@ -74,7 +74,7 @@ class Node:
             
         #for backup
         self.parent_a_edge = None
-        self.parent_b_edge = None
+        self.parent_b_edge = None        
         
     def select_edge(self, is_player_a, cpuct=10):
         if self.is_leaf:
@@ -166,7 +166,7 @@ class Edge:
         self.action = action
 
 class Tree:
-    def __init__(self, V, P, initial_state=0, move_thresh=12, max_moves=20, temp=1, num_sim=600):
+    def __init__(self, V, P, initial_state=0, move_thresh=100, max_moves=50, temp=1, num_sim=400):
         self.V = V
         self.P = P
         self.move_thresh = move_thresh
@@ -186,6 +186,7 @@ class Tree:
         self.values = np.zeros((self.max_moves))
         self.policies = np.zeros((self.max_moves, num_moves))
         
+        self.can_play = True
         
     def select(self):
         #start at root node
@@ -269,8 +270,12 @@ class Tree:
             node = node.parent
         if node.parent is not None:
             raise Exception('Last node backup parent is not none')
-        
+    
     def play(self):
+        if not self.can_play:
+            raise Exception("Not allowed to play")
+        self.can_play = False
+        
         node = self.root
         
         if self.move_num <= self.move_thresh:
@@ -281,7 +286,24 @@ class Tree:
             temp = None
         
         action_a, pi = node.get_action(True, use_temp, temp)
-        action_b, _ = node.get_action(False, use_temp, temp)
+        return action_a, pi
+    
+    def update_state(self, action_a, action_b, pi):
+        node = self.root
+        
+        if self.move_num <= self.move_thresh:
+            use_temp = True
+            temp = self.temp
+        else:
+            use_temp = False
+            temp = None
+        
+        if self.can_play:
+            raise Exception("Not allowed to update")
+        self.can_play = True
+        
+        if action_b is None:
+            action_b, _ = node.get_action(False, use_temp, temp)
         
         next_state, reward = get_next_state(node.state, action_a, action_b, self.player_a, self.player_b)
         
@@ -297,9 +319,10 @@ class Tree:
         self.root = node.children[action_a.value + num_moves*action_b.value]
         self.root.parent = None
         
-        self.states[self.move_num] = node.state
-        self.policies[self.move_num,:] = pi[:]
-        self.move_num = self.move_num + 1
+        if pi is not None:
+            self.states[self.move_num] = node.state
+            self.policies[self.move_num,:] = pi[:]
+            self.move_num = self.move_num + 1
         
         #garbage collect
         for edge in node.a_edges:
@@ -311,18 +334,22 @@ class Tree:
         
         return reward
         
-    def self_play_instance(self):
+    def play_instance_get_move(self):
         for s in range(self.num_sim):
             node, reward = self.select()
             v_a, v_b = self.expand_and_evaluate(node, reward)
             self.backup(node, v_a, v_b)
-            
-        reward = self.play()
+        
+        action, pi = self.play()
+        return action, pi
+        
+    def self_play_instance(self):
+        action, pi = self.play_instance_get_move()
+        reward = self.update_state(action, None, pi)
         return reward
     
     def self_play(self):
         for i in range(self.max_moves + 2):
-            print("Num: ", i)
             reward = self.self_play_instance()
             if reward == 1:
                 #print('Challenger won after ' + str(self.move_num) + ' moves')

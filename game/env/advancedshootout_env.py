@@ -28,7 +28,10 @@ class AdvancedShootoutEnv(gym.Env):
         
         #now can update hidden and external agent
         self.hidden_agent.make_action(hidden_agent_action)
+        self.hidden_agent.post_move_update(hidden_agent_action, action)
+        
         self.external_agent_tracker.make_action(action)
+        self.external_agent_tracker.post_move_update(action, hidden_agent_action)
         
         return self.get_observation(), reward, self.done, None
         

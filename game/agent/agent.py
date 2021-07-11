@@ -48,3 +48,6 @@ class Agent:
     
     def get_move_probs(self, opponent, max_bullets=None):
         pass
+    
+    def post_move_update(self, action, op_action):
+        pass
