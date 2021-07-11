@@ -292,19 +292,9 @@ class Tree:
     def update_state(self, action_a, action_b, pi):
         node = self.root
         
-        if self.move_num <= self.move_thresh:
-            use_temp = True
-            temp = self.temp
-        else:
-            use_temp = False
-            temp = None
-        
         if self.can_play:
             raise Exception("Not allowed to update")
         self.can_play = True
-        
-        if action_b is None:
-            action_b, _ = node.get_action(False, use_temp, temp)
         
         next_state, reward = get_next_state(node.state, action_a, action_b, self.player_a, self.player_b)
         
@@ -343,33 +333,60 @@ class Tree:
         
         action, pi = self.play()
         return action, pi
-        
-    def self_play_instance(self):
-        action, pi = self.play_instance_get_move()
-        reward = self.update_state(action, None, pi)
-        return reward
     
-    def self_play(self):
-        for i in range(self.max_moves + 2):
-            reward = self.self_play_instance()
-            if reward == 1:
-                #print('Challenger won after ' + str(self.move_num) + ' moves')
-                self.values[:] = reward
-                self.states[self.move_num] = self.root.state
-                return
-                #return reward
-            elif reward == -1:
-                #print('Best won after ' + str(self.move_num) + ' moves')
-                self.values[:] = reward
-                self.states[self.move_num] = self.root.state
-                return
-                #return reward
-            elif reward == 0 and self.move_num == self.max_moves:
-                #print('Draw after ' + str(self.move_num) + ' moves')
-                self.values[:] = reward
-                self.states[self.move_num] = self.root.state
-                return
-                #return reward
-        print(i)
-        raise Exception('Something went horribly wrong')
+def self_play(tree_a, tree_b, max_moves):
+    for i in range(max_moves + 2):
+        action_a, pi_a = tree_a.play_instance_get_move()
+        action_b, pi_b = tree_b.play_instance_get_move()
+        
+        reward_a = tree_a.update_state(action_a, action_b, pi_a)
+        reward_b = tree_b.update_state(action_b, action_a, pi_b)
+        
+        if reward_a != -reward_b:
+            raise Exception('Rewards do not match')
+        
+        if tree_a.move_num != tree_b.move_num:
+            raise Exception('Move nums do not match')
+        
+        if reward_a == 0 and tree_a.move_num != max_moves:
+            continue
+        
+        tree_a.values[:] = reward_a
+        tree_b.values[:] = reward_b
+        
+        #just for debugging
+        tree_a.states[tree_a.move_num] = tree_a.root.state
+        tree_b.states[tree_b.move_num] = tree_b.root.state
+        
+        return
+    raise Exception('Something went horribly wrong')
+
+    #def self_play_instance(self):
+    #    action, pi = self.play_instance_get_move()
+    #    reward = self.update_state(action, None, pi)
+    #    return reward
+    
+    # def self_play(self):
+    #     for i in range(self.max_moves + 2):
+    #         reward = self.self_play_instance()
+    #         if reward == 1:
+    #             #print('Challenger won after ' + str(self.move_num) + ' moves')
+    #             self.values[:] = reward
+    #             self.states[self.move_num] = self.root.state
+    #             return
+    #             #return reward
+    #         elif reward == -1:
+    #             #print('Best won after ' + str(self.move_num) + ' moves')
+    #             self.values[:] = reward
+    #             self.states[self.move_num] = self.root.state
+    #             return
+    #             #return reward
+    #         elif reward == 0 and self.move_num == self.max_moves:
+    #             #print('Draw after ' + str(self.move_num) + ' moves')
+    #             self.values[:] = reward
+    #             self.states[self.move_num] = self.root.state
+    #             return
+    #             #return reward
+    #     print(i)
+    #     raise Exception('Something went horribly wrong')
         

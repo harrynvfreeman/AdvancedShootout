@@ -1,5 +1,6 @@
 import numpy as np
 from mcts.mcts import Tree
+from mcts.mcts import self_play as mcts_self_play
 from game.agent.mcts_agent import MctsAgent
 from game.env.advancedshootout_env import get_reward
 import game.move
@@ -192,23 +193,35 @@ def self_play(num_iterations=200):
         
     
 def self_play_instance(V, P, counter, version):
-    tree = Tree(V, P)
-    tree.self_play()
+    tree_a = Tree(V, P)
+    tree_b = Tree(V, P)
     
-    for i in range(int(tree.move_num)):
-        state = tree.states[i]
-        V = tree.values[i]
-        P = tree.policies[i, :]
+    mcts_self_play(tree_a, tree_b, tree_a.max_moves)
+    
+    for i in range(int(tree_a.move_num)):
+        state = tree_a.states[i]
+        V = tree_a.values[i]
+        P = tree_a.policies[i, :]
         if (np.sum(P) == 0):
             raise Exception('Somehow added invalid policy')
         
         saved_state = SavedState(state, V, P)
-        saved_state.serialize('./train/' + self_play_data_dir + '/' + str(version) + '/' + str(counter) + '.json')
+        saved_state.serialize('./train/' + self_play_data_dir + '/' + str(version) + '/' + str(counter) + '_a.json')
+        
+        state = tree_b.states[i]
+        V = tree_b.values[i]
+        P = tree_b.policies[i, :]
+        if (np.sum(P) == 0):
+            raise Exception('Somehow added invalid policy')
+        
+        saved_state = SavedState(state, V, P)
+        saved_state.serialize('./train/' + self_play_data_dir + '/' + str(version) + '/' + str(counter) + '_b.json')
         #with open('./train/' + self_play_data_dir + '/' + str(version) + '/' + str(counter) + '.pickle', 'wb') as handle:
         #    pickle.dump(saved_state, handle, protocol=pickle.HIGHEST_PROTOCOL)
         counter = counter + 1
     
-    del tree
+    del tree_a
+    del tree_b
     gc.collect()
     
     return counter
