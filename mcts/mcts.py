@@ -76,7 +76,7 @@ class Node:
         self.parent_a_edge = None
         self.parent_b_edge = None        
         
-    def select_edge(self, is_player_a, cpuct=10):
+    def select_edge(self, is_player_a, cpuct=1.5):
         if self.is_leaf:
             raise Exception("Cannot select on leaf node")
         
@@ -114,7 +114,8 @@ class Node:
         N_total = np.sum(N)
         
         #we are adding 1 to N_total because we will try parent node count
-        U = cpuct*P*np.sqrt(N_total + 1)/(1 + N)
+        #U = cpuct*P*np.sqrt(N_total + 1)/(1 + N)
+        U = cpuct*P*np.sqrt(N_total)/(1 + N)
 
         to_max = Q + U
         

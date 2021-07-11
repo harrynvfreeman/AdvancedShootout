@@ -4,7 +4,8 @@ from game.agent.mcts_agent import MctsAgent
 from game.env.advancedshootout_env import get_reward
 import game.move
 import gc
-import pickle
+#import pickle
+import json
 import os
 import copy
 
@@ -15,6 +16,18 @@ class SavedState:
         self.state = state
         self.V = V
         self.P = P
+    
+    def serialize(self, path):
+        with open(path, 'w') as file:
+            json.dump({'state':int(self.state), 'V':self.V.tolist(), 'P':self.P.tolist()}, file)
+        
+    def deserialize(self, path):
+        with open(path, 'r') as file:
+            j = json.load(file)
+            self.state = j['state']
+            self.V = np.array(j['V'])
+            self.P = np.array(j['P'])
+            
 
 best_player_dir = "best"
 self_play_data_dir = "data"
@@ -25,7 +38,7 @@ num_states = (max_bullets+1)*(max_bullets+1)
 def initialize():
     #P = np.random.rand(num_states, game.move.num_moves)
     P = np.ones((num_states, game.move.num_moves))
-    P = P + np.random.normal(loc=0, scale = 1, size=P.shape)*0.1
+    P = P + np.random.normal(loc=0, scale = 1, size=P.shape)*0.05
     P[P<0] = 0
     #we are not allowing reload if we have max bullets
     P[(max_bullets)*(max_bullets+1):, game.move.Move.RELOAD.value] = 0
@@ -41,17 +54,18 @@ def initialize():
     P = P / P.sum(axis=1, keepdims=True)
     
     V = np.zeros((num_states))
-    V = V + np.random.normal(loc=0, scale = 1, size=V.shape)*0.1
+    V = V + np.random.normal(loc=0, scale = 1, size=V.shape)*0.05
     
     #V = np.random.uniform(low=-1.0, high=1.0, size=num_states)
     #V = np.random.normal(loc=0, scale = 0.05, size=num_states)
     V[V<-1] = -1
     V[V>1] = 1
-
+    
     os.system('rm -rf ./train/*')
     os.mkdir('./train/' + best_player_dir)
     os.mkdir('./train/0')
     os.mkdir('./train/' + self_play_data_dir)
+    os.mkdir('./train/' + self_play_data_dir + '/0')
     
     os.mkdir('./train/' + best_player_dir + '/0')
     np.save('./train/'+ best_player_dir + '/0/P.npy', P)
@@ -72,12 +86,14 @@ def optimize():
     v_sum = np.zeros((num_states))
     p_sum = np.zeros((num_states, game.move.num_moves))
     
-    saved_states = os.listdir('./train/' + self_play_data_dir)
+    saved_states = os.listdir('./train/' + self_play_data_dir + '/' + str(version))
     for saved_state_path in saved_states:
-        path = './train/' + self_play_data_dir + '/' + saved_state_path
+        path = './train/' + self_play_data_dir + '/' + str(version) + '/' + saved_state_path
         try:
-            with open(path, 'rb') as handle:
-                saved_state = pickle.load(handle)
+            saved_state = SavedState(None, None, None)
+            saved_state.deserialize(path)
+            #with open(path, 'rb') as handle:
+            #    saved_state = pickle.load(handle)
             state = saved_state.state
         except:
             continue
@@ -104,6 +120,7 @@ def optimize():
     np.save('./train/' + str(version) + '/V.npy', V)
     np.save('./train/' + str(version) + '/P.npy', P)
     np.save('./train/version.npy', version)
+    os.mkdir('./train/' + self_play_data_dir + '/' + str(version))
     
 def evaluate(num_games=200, max_move_count=50, win_percent=0.55):
     version = np.load('./train/version.npy')
@@ -161,19 +178,20 @@ def evaluate(num_games=200, max_move_count=50, win_percent=0.55):
     
 
 def self_play(num_iterations=200):
-    os.system('rm ./train/' + self_play_data_dir + '/*')
     counter = 0
     
     best_version = np.load('./train/' + best_player_dir + '/best_version.npy')
     P = np.load('./train/'+ best_player_dir + '/' + str(best_version) + '/P.npy')
     V = np.load('./train/'+ best_player_dir + '/' + str(best_version) + '/V.npy')
     
+    version = np.load('./train/version.npy')
+    
     for i in range(num_iterations):
         print('Beggining self play: ', i)
-        counter = self_play_instance(V, P, counter)
+        counter = self_play_instance(V, P, counter, version)
         
     
-def self_play_instance(V, P, counter):
+def self_play_instance(V, P, counter, version):
     tree = Tree(V, P)
     tree.self_play()
     
@@ -185,8 +203,9 @@ def self_play_instance(V, P, counter):
             raise Exception('Somehow added invalid policy')
         
         saved_state = SavedState(state, V, P)
-        with open('./train/' + self_play_data_dir + '/' + str(counter) + '.pickle', 'wb') as handle:
-            pickle.dump(saved_state, handle, protocol=pickle.HIGHEST_PROTOCOL)
+        saved_state.serialize('./train/' + self_play_data_dir + '/' + str(version) + '/' + str(counter) + '.json')
+        #with open('./train/' + self_play_data_dir + '/' + str(version) + '/' + str(counter) + '.pickle', 'wb') as handle:
+        #    pickle.dump(saved_state, handle, protocol=pickle.HIGHEST_PROTOCOL)
         counter = counter + 1
     
     del tree
