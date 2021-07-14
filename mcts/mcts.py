@@ -1,54 +1,9 @@
 from game.move import num_moves
 from game.move import move_dict
-from game.move import move_bullet_cost
-from game.move import Move
 from game.agent.agent import Agent
-from game.env.advancedshootout_env import get_reward
 import numpy as np
+from game.utils import max_bullets, is_end_state, invert_state, is_legal_move, get_next_state, draw_state
 import gc
-import pickle
-
-max_bullets = move_bullet_cost[Move.SONIC_BOOM.value]
-
-def get_num_bullets(s):
-    return s // (max_bullets+1)
-
-def get_op_num_bullets(s):
-    return s % (max_bullets+1)
-
-def get_state(num_bullets, op_num_bullets):
-    return num_bullets * (max_bullets+1) + op_num_bullets
-
-def invert_state(s):
-    num_bullets = get_num_bullets(s)
-    op_num_bullets = get_op_num_bullets(s)
-    return get_state(op_num_bullets, num_bullets)
-
-def is_legal_move(s, action):
-    num_bullets = get_num_bullets(s)
-    if num_bullets == max_bullets and action.value == Move.RELOAD.value:
-        return False
-    return get_num_bullets(s) >= move_bullet_cost[action.value]
-
-def get_next_state(s, action_a, action_b, player_a, player_b):
-    player_a_bullets = get_num_bullets(s)
-    player_b_bullets = get_op_num_bullets(s)
-    
-    player_a.force_num_bullets(player_a_bullets)
-    player_b.force_num_bullets(player_b_bullets)
-    
-    player_a_bullets_next = player_a_bullets + player_a.get_bullet_diff(action_a)
-    player_b_bullets_next = player_b_bullets + player_b.get_bullet_diff(action_b)
-    
-    next_state = get_state(player_a_bullets_next, player_b_bullets_next)
-    if next_state < 0:
-        print("--------------")
-        print(s)
-        print('next state is ' + str(next_state) + ' from (' + str(player_a_bullets) + ', ' + str(player_b_bullets) + ') to (' + str(player_a_bullets_next) + ', ' + str(player_b_bullets_next) + ')')
-        print('player a did ' + str(action_a) + ' and player b did ' + str(action_b))
-        raise Exception("Illegal state")
-    reward = get_reward(action_a, action_b)
-    return next_state, reward
 
 class Node:
     def __init__(self, state, id, parent=None):
@@ -79,6 +34,9 @@ class Node:
     def select_edge(self, is_player_a, cpuct=1.5):
         if self.is_leaf:
             raise Exception("Cannot select on leaf node")
+        
+        if is_end_state(self.state):
+            raise Exception("Cannot select on end state")
         
         Q = np.zeros((num_moves))
         P = np.zeros((num_moves))
@@ -128,6 +86,9 @@ class Node:
     def get_action(self, is_player_a, use_temp, temp):
         if self.is_leaf:
             raise Exception("Cannot call play on leaf node")
+        
+        if is_end_state(self.state):
+            raise Exception("Cannot call play on end state")
         
         if is_player_a:
             edges = self.a_edges
@@ -184,8 +145,8 @@ class Tree:
         self.player_b = Agent()
         
         self.states = np.zeros((self.max_moves) + 1, dtype=np.int)
-        self.values = np.zeros((self.max_moves))
-        self.policies = np.zeros((self.max_moves, num_moves))
+        self.values = np.zeros((self.max_moves + 1))
+        self.policies = np.zeros((self.max_moves + 1, num_moves))
         
         self.can_play = True
         
@@ -216,7 +177,6 @@ class Tree:
     def expand_and_evaluate(self, node, reward):
         if not node.is_leaf:
             raise Exception("Cannot call expand and evaluate on non-leaf node")
-        
         v_a = np.array(self.V[node.state])
         p_a = np.array(self.P[node.state])
         
@@ -226,13 +186,18 @@ class Tree:
         
         #if game over we do not expand or evaluate
         if reward != 0:
+            if not is_end_state(node.state):
+                raise Exception("Reward is not 0 and end state not detected")
             return v_a, v_b
             #return reward, -reward
         
+        if is_end_state(node.state):
+            raise Exception('End state detected and reward not 0')
+        
         #dirichlet noise if root
         if node.id == self.root.id:
-            dirichlet_a = np.random.dirichlet([0.03]*num_moves)
-            dirichlet_b = np.random.dirichlet([0.03]*num_moves)
+            dirichlet_a = np.random.dirichlet([0.3]*num_moves)
+            dirichlet_b = np.random.dirichlet([0.3]*num_moves)
             
             for i in range(num_moves):
                 if is_legal_move(node.state, move_dict[i]):
@@ -273,10 +238,6 @@ class Tree:
             raise Exception('Last node backup parent is not none')
     
     def play(self):
-        if not self.can_play:
-            raise Exception("Not allowed to play")
-        self.can_play = False
-        
         node = self.root
         
         if self.move_num <= self.move_thresh:
@@ -326,6 +287,10 @@ class Tree:
         return reward
         
     def play_instance_get_move(self):
+        if not self.can_play:
+            raise Exception("Not allowed to play")
+        self.can_play = False
+        
         for s in range(self.num_sim):
             node, reward = self.select()
             v_a, v_b = self.expand_and_evaluate(node, reward)
@@ -354,39 +319,13 @@ def self_play(tree_a, tree_b, max_moves):
         tree_a.values[:] = reward_a
         tree_b.values[:] = reward_b
         
-        #just for debugging
-        tree_a.states[tree_a.move_num] = tree_a.root.state
-        tree_b.states[tree_b.move_num] = tree_b.root.state
-        
+        if reward_a == 0:
+            tree_a.states[tree_a.move_num] = draw_state
+            tree_b.states[tree_a.move_num] = draw_state
+        else:
+            tree_a.states[tree_a.move_num] = tree_a.root.state
+            tree_b.states[tree_b.move_num] = tree_b.root.state
+            
         return
     raise Exception('Something went horribly wrong')
 
-    #def self_play_instance(self):
-    #    action, pi = self.play_instance_get_move()
-    #    reward = self.update_state(action, None, pi)
-    #    return reward
-    
-    # def self_play(self):
-    #     for i in range(self.max_moves + 2):
-    #         reward = self.self_play_instance()
-    #         if reward == 1:
-    #             #print('Challenger won after ' + str(self.move_num) + ' moves')
-    #             self.values[:] = reward
-    #             self.states[self.move_num] = self.root.state
-    #             return
-    #             #return reward
-    #         elif reward == -1:
-    #             #print('Best won after ' + str(self.move_num) + ' moves')
-    #             self.values[:] = reward
-    #             self.states[self.move_num] = self.root.state
-    #             return
-    #             #return reward
-    #         elif reward == 0 and self.move_num == self.max_moves:
-    #             #print('Draw after ' + str(self.move_num) + ' moves')
-    #             self.values[:] = reward
-    #             self.states[self.move_num] = self.root.state
-    #             return
-    #             #return reward
-    #     print(i)
-    #     raise Exception('Something went horribly wrong')
-        

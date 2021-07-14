@@ -9,6 +9,7 @@ import gc
 import json
 import os
 import copy
+from game.utils import max_bullets, num_states, num_end_states, is_end_state
 
 alpha = 0.1
 
@@ -33,9 +34,6 @@ class SavedState:
 best_player_dir = "best"
 self_play_data_dir = "data"
 
-max_bullets = game.move.move_bullet_cost[game.move.Move.SONIC_BOOM.value]
-num_states = (max_bullets+1)*(max_bullets+1)
-
 def initialize():
     #P = np.random.rand(num_states, game.move.num_moves)
     P = np.ones((num_states, game.move.num_moves))
@@ -53,6 +51,7 @@ def initialize():
     P[0:((max_bullets+1)*game.move.move_bullet_cost[game.move.Move.SONIC_BOOM.value]), game.move.Move.SONIC_BOOM.value] = 0
     
     P = P / P.sum(axis=1, keepdims=True)
+    P[-num_end_states:] = 0
     
     V = np.zeros((num_states))
     V = V + np.random.normal(loc=0, scale = 1, size=V.shape)*0.05
@@ -178,7 +177,7 @@ def evaluate(num_games=200, max_move_count=50, win_percent=0.55):
         return False
     
 
-def self_play(num_iterations=200):
+def self_play(num_iterations=400):
     counter = 0
     
     best_version = np.load('./train/' + best_player_dir + '/best_version.npy')
@@ -198,11 +197,11 @@ def self_play_instance(V, P, counter, version):
     
     mcts_self_play(tree_a, tree_b, tree_a.max_moves)
     
-    for i in range(int(tree_a.move_num)):
+    for i in range(int(tree_a.move_num + 1)):
         state = tree_a.states[i]
         V = tree_a.values[i]
         P = tree_a.policies[i, :]
-        if (np.sum(P) == 0):
+        if (not is_end_state(state)) and (np.sum(P) == 0):
             raise Exception('Somehow added invalid policy')
         
         saved_state = SavedState(state, V, P)
@@ -211,7 +210,7 @@ def self_play_instance(V, P, counter, version):
         state = tree_b.states[i]
         V = tree_b.values[i]
         P = tree_b.policies[i, :]
-        if (np.sum(P) == 0):
+        if (not is_end_state(state)) and (np.sum(P) == 0):
             raise Exception('Somehow added invalid policy')
         
         saved_state = SavedState(state, V, P)
