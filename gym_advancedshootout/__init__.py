@@ -9,3 +9,8 @@ register(
     id='AdvancedShootoutSmart-v0',
     entry_point='gym_advancedshootout.envs:AdvancedShootoutSmartEnv',
 )
+
+register(
+    id='AdvancedShootoutMcts-v0',
+    entry_point='gym_advancedshootout.envs:AdvancedShootoutMctsEnv',
+)

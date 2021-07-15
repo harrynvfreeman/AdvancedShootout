@@ -1,6 +1,7 @@
 import gym
 import gym_advancedshootout
 from gym_advancedshootout.envs.advancedshootout_smart_env import AdvancedShootoutSmartEnv
+from gym_advancedshootout.envs.advancedshootout_mcts_env import AdvancedShootoutMctsEnv
 from game.agent.random_agent import RandomAgent
 from game.agent.human_agent import HumanAgent
 from game.agent.smart_agent import SmartAgent
@@ -10,15 +11,15 @@ from game.agent.mcts_agent import MctsAgent
 from game.move import Move
 import numpy as np
 
-env_type = "random"
+env_type = "mcts"
 env_version = 15
 env_best = True
-agent_type = "mcts"
+agent_type = "human"
 agent_version = 1
 agent_best = True
 deterministic = False
 safe_guard = 100
-num_iterations = 1000
+num_iterations = 1
 
 if env_type == "random":
     env = gym.make('AdvancedShootoutRandom-v0')
@@ -27,6 +28,11 @@ elif env_type == "smart":
     AdvancedShootoutSmartEnv.set_version(env_version)
     AdvancedShootoutSmartEnv.set_best(env_best)
     env = gym.make('AdvancedShootoutSmart-v0')
+elif env_type == "mcts":
+    AdvancedShootoutMctsEnv.set_version(env_version)
+    AdvancedShootoutSmartEnv.set_best(env_best)
+    env = gym.make('AdvancedShootoutMcts-v0')
+
 
 if agent_type == "random":
     agent = RandomAgent("Player0")

@@ -1,2 +1,3 @@
 from gym_advancedshootout.envs.advancedshootout_random_env import AdvancedShootoutRandomEnv
 from gym_advancedshootout.envs.advancedshootout_smart_env import AdvancedShootoutSmartEnv
+from gym_advancedshootout.envs.advancedshootout_mcts_env import AdvancedShootoutMctsEnv

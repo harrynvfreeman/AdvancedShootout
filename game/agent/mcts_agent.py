@@ -8,8 +8,6 @@ class MctsAgent(Agent):
         self.P = np.load(path + '/P.npy')
         super().__init__(name)
         
-        
-    
     def get_next_action(self, opponent):
         action, _ = self.tree.play_instance_get_move()
         return action
