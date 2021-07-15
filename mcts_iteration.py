@@ -5,7 +5,6 @@ from game.agent.mcts_agent import MctsAgent
 from game.env.advancedshootout_env import get_reward
 import game.move
 import gc
-#import pickle
 import json
 import os
 import copy
@@ -76,11 +75,12 @@ def initialize():
     np.save('./train/0/V.npy', V)
     np.save('./train/version.npy', 0)
     
-def optimize():
-    version = np.load('./train/version.npy')
+    os.mkdir('./train/opt_tmp')
+    os.mkdir('./train/eval_tmp')
+    
+def optimize(version):
     V = np.load('./train/' + str(version) + '/V.npy')
     P = np.load('./train/' + str(version) + '/P.npy')
-    
     
     visited = {}
     v_sum = np.zeros((num_states))
@@ -92,8 +92,6 @@ def optimize():
         try:
             saved_state = SavedState(None, None, None)
             saved_state.deserialize(path)
-            #with open(path, 'rb') as handle:
-            #    saved_state = pickle.load(handle)
             state = saved_state.state
         except:
             continue
@@ -115,16 +113,10 @@ def optimize():
         P[state, :] = P[state, :] + alpha*(p_sum[state, :] - P[state, :])
         P[state, :] = P[state, :] / P[state, :].sum()
         
-    version = version + 1
-    os.mkdir('./train/' + str(version))
-    np.save('./train/' + str(version) + '/V.npy', V)
-    np.save('./train/' + str(version) + '/P.npy', P)
-    np.save('./train/version.npy', version)
-    os.mkdir('./train/' + self_play_data_dir + '/' + str(version))
+    np.save('./train/opt_tmp/V.npy', V)
+    np.save('./train/opt_tmp/P.npy', P)
     
-def evaluate(num_games=200, max_move_count=50, win_percent=0.55):
-    version = np.load('./train/version.npy')
-    best_version = np.load('./train/' + best_player_dir + '/best_version.npy')
+def evaluate(best_version, version, num_games=200, max_move_count=50, win_percent=0.55):
     challenger_path = './train/' + str(version)
     best_path = './train/' + best_player_dir + '/' + str(best_version)
     
@@ -168,23 +160,18 @@ def evaluate(num_games=200, max_move_count=50, win_percent=0.55):
     print('Draw rate is: ' + str(draw_count / num_games))
     if challenger_win_count / num_games >= win_percent:
         best_version = best_version + 1
-        os.mkdir('./train/' + best_player_dir + '/' + str(best_version))
-        os.system('cp ./train/' + str(version) + '/P.npy ' './train/' + best_player_dir + '/' + str(best_version) + '/P.npy')
-        os.system('cp ./train/' + str(version) + '/V.npy ' './train/' + best_player_dir + '/' + str(best_version) + '/V.npy')
-        np.save('./train/' + best_player_dir + '/best_version.npy', best_version)
-        return True
+        os.system('cp ./train/' + str(version) + '/P.npy ' './train/eval_tmp/P.npy')
+        os.system('cp ./train/' + str(version) + '/V.npy ' './train/eval_tmp/V.npy')
+        np.save('./train/eval_tmp/best_version.npy', best_version)
     else:
-        return False
+        np.save('./train/eval_tmp/best_version.npy', best_version)
     
 
-def self_play(num_iterations=400):
+def self_play(best_version, version, num_iterations=100):
     counter = 0
     
-    best_version = np.load('./train/' + best_player_dir + '/best_version.npy')
     P = np.load('./train/'+ best_player_dir + '/' + str(best_version) + '/P.npy')
     V = np.load('./train/'+ best_player_dir + '/' + str(best_version) + '/V.npy')
-    
-    version = np.load('./train/version.npy')
     
     for i in range(num_iterations):
         print('Beggining self play: ', i)
@@ -215,8 +202,6 @@ def self_play_instance(V, P, counter, version):
         
         saved_state = SavedState(state, V, P)
         saved_state.serialize('./train/' + self_play_data_dir + '/' + str(version) + '/' + str(counter) + '_b.json')
-        #with open('./train/' + self_play_data_dir + '/' + str(version) + '/' + str(counter) + '.pickle', 'wb') as handle:
-        #    pickle.dump(saved_state, handle, protocol=pickle.HIGHEST_PROTOCOL)
         counter = counter + 1
     
     del tree_a
