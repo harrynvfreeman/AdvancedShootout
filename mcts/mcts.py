@@ -31,7 +31,7 @@ class Node:
         self.parent_a_edge = None
         self.parent_b_edge = None        
         
-    def select_edge(self, is_player_a, cpuct=1.5):
+    def select_edge(self, is_player_a, cpuct=4):
         if self.is_leaf:
             raise Exception("Cannot select on leaf node")
         
@@ -72,8 +72,8 @@ class Node:
         N_total = np.sum(N)
         
         #we are adding 1 to N_total because we will try parent node count
-        #U = cpuct*P*np.sqrt(N_total + 1)/(1 + N)
-        U = cpuct*P*np.sqrt(N_total)/(1 + N)
+        U = cpuct*P*np.sqrt(N_total + 1)/(1 + N)
+        #U = cpuct*P*np.sqrt(N_total)/(1 + N)
 
         to_max = Q + U
         
@@ -194,19 +194,9 @@ class Tree:
         if is_end_state(node.state):
             raise Exception('End state detected and reward not 0')
         
-        #dirichlet noise if root
+        #dirichlet noise if root and not expanded before
         if node.id == self.root.id:
-            dirichlet_a = np.random.dirichlet([0.3]*num_moves)
-            dirichlet_b = np.random.dirichlet([0.3]*num_moves)
-            
-            for i in range(num_moves):
-                if is_legal_move(node.state, move_dict[i]):
-                    p_a[i] = (1-0.25)*p_a[i] + (0.25)*dirichlet_a[i]
-                if is_legal_move(inverted_state, move_dict[i]):
-                    p_b[i] = (1-0.25)*p_b[i] + (0.25)*dirichlet_b[i]
-                    
-            p_a = p_a / p_a.sum()
-            p_b = p_b / p_b.sum()
+            p_a, p_b = add_dirichlet_noise(node, p_a, p_b)
         
         for i in range(num_moves):
             node.a_edges[i] = Edge(node, p_a[i], move_dict[i])
@@ -271,6 +261,21 @@ class Tree:
         self.root = node.children[action_a.value + num_moves*action_b.value]
         self.root.parent = None
         
+        if self.root.a_edges is not None:
+            if self.root.b_edges is None:
+                raise Exception('Why is a_edges none and not b_edges')
+            p_a = np.zeros((num_moves))
+            p_b = np.zeros((num_moves))
+            for i in range(num_moves):
+                p_a[i] = self.root.a_edges[i].P
+                p_b[i] = self.root.b_edges[i].P
+            p_a, p_b = add_dirichlet_noise(self.root, p_a, p_b)
+            for i in range(num_moves):
+                self.root.a_edges[i].P = p_a[i]
+                self.root.b_edges[i].P = p_b[i]
+        elif self.root.b_edges is not None:
+            raise Exception('Why is b_edges none and not a_edges')
+        
         if pi is not None:
             self.states[self.move_num] = node.state
             self.policies[self.move_num,:] = pi[:]
@@ -329,3 +334,17 @@ def self_play(tree_a, tree_b, max_moves):
         return
     raise Exception('Something went horribly wrong')
 
+#dirichlet noise
+def add_dirichlet_noise(node, p_a, p_b):
+    dirichlet_a = np.random.dirichlet([0.3]*num_moves)
+    dirichlet_b = np.random.dirichlet([0.3]*num_moves)
+    
+    for i in range(num_moves):
+        if is_legal_move(node.state, move_dict[i]):
+            p_a[i] = (1-0.25)*p_a[i] + (0.25)*dirichlet_a[i]
+        if is_legal_move(invert_state(node.state), move_dict[i]):
+            p_b[i] = (1-0.25)*p_b[i] + (0.25)*dirichlet_b[i]
+            
+    p_a = p_a / p_a.sum()
+    p_b = p_b / p_b.sum()
+    return p_a, p_b
