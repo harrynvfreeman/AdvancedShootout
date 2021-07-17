@@ -31,7 +31,7 @@ class Node:
         self.parent_a_edge = None
         self.parent_b_edge = None        
         
-    def select_edge(self, is_player_a, cpuct=4):
+    def select_edge(self, is_player_a, cpuct=12):
         if self.is_leaf:
             raise Exception("Cannot select on leaf node")
         
@@ -60,13 +60,6 @@ class Node:
                     raise Exception('N for illegal move is not 0')
             P[i] = edges[i].P
             N[i] = edges[i].N
-        
-        #if not player a just do numpy random choice
-        if not is_player_a:
-            action_index = np.random.choice(num_moves, p=P)
-            if not is_legal_move(state, move_dict[action_index]):
-                raise Exception('Illegal action selected in select edge')
-            return edges[action_index]
             
         
         N_total = np.sum(N)
@@ -94,14 +87,6 @@ class Node:
             edges = self.a_edges
         else:
             edges = self.b_edges
-            
-        #if not player a then random based on probabilities
-        if not is_player_a:
-            P = np.zeros((num_moves))
-            for i in range(num_moves):
-                P[i] = edges[i].P
-            action_index = np.random.choice(num_moves, p=P)
-            return move_dict[action_index], None
         
         N = np.zeros((num_moves))
         for i in range(num_moves):
@@ -112,6 +97,7 @@ class Node:
         N_total = np.sum(N)
         
         pi = N / N_total
+        
         if use_temp:
             return move_dict[np.random.choice(num_moves, p=pi)], pi
         else:
@@ -128,7 +114,7 @@ class Edge:
         self.action = action
 
 class Tree:
-    def __init__(self, V, P, initial_state=0, move_thresh=100, max_moves=50, temp=1, num_sim=400):
+    def __init__(self, V, P, initial_state=0, move_thresh=100, max_moves=50, temp=1, num_sim=200):
         self.V = V
         self.P = P
         self.move_thresh = move_thresh
@@ -261,8 +247,8 @@ class Tree:
         self.root = node.children[action_a.value + num_moves*action_b.value]
         self.root.parent = None
         
-        if self.root.a_edges is not None:
-            if self.root.b_edges is None:
+        if self.root.a_edges[0] is not None:
+            if self.root.b_edges[0] is None:
                 raise Exception('Why is a_edges none and not b_edges')
             p_a = np.zeros((num_moves))
             p_b = np.zeros((num_moves))
@@ -273,7 +259,7 @@ class Tree:
             for i in range(num_moves):
                 self.root.a_edges[i].P = p_a[i]
                 self.root.b_edges[i].P = p_b[i]
-        elif self.root.b_edges is not None:
+        elif self.root.b_edges[0] is not None:
             raise Exception('Why is b_edges none and not a_edges')
         
         if pi is not None:
@@ -336,8 +322,8 @@ def self_play(tree_a, tree_b, max_moves):
 
 #dirichlet noise
 def add_dirichlet_noise(node, p_a, p_b):
-    dirichlet_a = np.random.dirichlet([0.3]*num_moves)
-    dirichlet_b = np.random.dirichlet([0.3]*num_moves)
+    dirichlet_a = np.random.dirichlet([0.5]*num_moves)
+    dirichlet_b = np.random.dirichlet([0.5]*num_moves)
     
     for i in range(num_moves):
         if is_legal_move(node.state, move_dict[i]):

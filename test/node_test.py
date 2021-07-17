@@ -126,21 +126,3 @@ def node_test_get_action_player_a_with_temp():
     
     if not found_not_max:
         raise Exception('Best move was always selected in node_test_get_action_player_a_with_temp')
-
-def node_test_get_action_player_b():
-    node = Node(0, 48)
-    node.is_leaf = False
-    for i in range(num_moves):
-        node.b_edges[i] = Edge(node, 0, move_dict[i])
-        
-    #set shield to 100% probability
-    node.b_edges[2].P = 1
-    
-    for i in range(100):
-        action, pi = node.get_action(False, None, None)
-    
-        if pi is not None:
-            raise Exception('node_test_get_action_player_b test failed. Pi not None')
-        
-        if not action.value == Move.SHOOT.value:
-            raise Exception('node_test_get_action_player_b test failed. Expected: ', Move.SHOOT, ', Actual: ', action)
