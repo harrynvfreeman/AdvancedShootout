@@ -30,7 +30,7 @@ elif env_type == "smart":
     env = gym.make('AdvancedShootoutSmart-v0')
 elif env_type == "mcts":
     AdvancedShootoutMctsEnv.set_version(env_version)
-    AdvancedShootoutSmartEnv.set_best(env_best)
+    AdvancedShootoutMctsEnv.set_best(env_best)
     env = gym.make('AdvancedShootoutMcts-v0')
 
 
